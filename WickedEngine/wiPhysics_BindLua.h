@@ -15,6 +15,7 @@ namespace wi::lua
 		Physics_BindLua() = default;
 		Physics_BindLua(lua_State* L) {}
 
+		int GetBackendName(lua_State* L);
 		int SetEnabled(lua_State* L);
 		int IsEnabled(lua_State* L);
 		int SetSimulationEnabled(lua_State* L);

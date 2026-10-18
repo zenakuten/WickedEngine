@@ -77,24 +77,49 @@ endif()
 add_subdirectory(LUA)
 add_subdirectory(Utility)
 
-set(PHYSICS_REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
-include(${PHYSICS_REPO_ROOT}/Jolt/Jolt.cmake)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # Jolt triggers a bug in some GCC versions, so we need to disable the warning
-    target_compile_options(Jolt PRIVATE -Wno-stringop-overflow)
+if(WICKED_PHYSICS_BACKEND STREQUAL "Box3D")
+    add_subdirectory(Box3D)
+    set_target_properties(box3d PROPERTIES
+        POSITION_INDEPENDENT_CODE ${WICKED_PIC}
+        UNITY_BUILD NO
+    )
+    if(SANITIZE_OPTIONS)
+        separate_arguments(WICKED_PHYSICS_SANITIZERS NATIVE_COMMAND "${SANITIZE_OPTIONS}")
+        if(WICKED_ENABLE_SAN_ALWAYS)
+            target_compile_options(box3d PRIVATE ${WICKED_PHYSICS_SANITIZERS})
+        else()
+            target_compile_options(box3d PRIVATE "$<$<CONFIG:Debug>:${WICKED_PHYSICS_SANITIZERS}>")
+        endif()
+    endif()
+    set(WICKED_PHYSICS_LIBRARY box3d)
+    set(WICKED_PHYSICS_SOURCE wiPhysics_Box3D.cpp)
+    set(WICKED_PHYSICS_DEFINITION WICKED_PHYSICS_BOX3D=1)
+    message(STATUS "Box3D revision: a2e4816b4359b32408d5623784a7fe2d7259d3d6")
+else()
+    set(PHYSICS_REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+    include(${PHYSICS_REPO_ROOT}/Jolt/Jolt.cmake)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # Jolt triggers a bug in some GCC versions, so we need to disable the warning
+        target_compile_options(Jolt PRIVATE -Wno-stringop-overflow)
+    endif()
+    set_target_properties(Jolt PROPERTIES
+        POSITION_INDEPENDENT_CODE ${WICKED_PIC}
+    )
+    add_compile_definitions(JPH_DEBUG_RENDERER)
+    set(WICKED_PHYSICS_LIBRARY Jolt)
+    set(WICKED_PHYSICS_SOURCE wiPhysics_Jolt.cpp)
+    set(WICKED_PHYSICS_DEFINITION WICKED_PHYSICS_JOLT=1)
 endif()
-
-set_target_properties(Jolt PROPERTIES
-    POSITION_INDEPENDENT_CODE ${WICKED_PIC}
-)
-add_compile_definitions(Jolt JPH_DEBUG_RENDERER)
 
 file(GLOB HEADER_FILES CONFIGURE_DEPENDS *.h)
 file(GLOB SOURCE_FILES CONFIGURE_DEPENDS *.cpp)
 list(REMOVE_ITEM SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/offlineshadercompiler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/wiRenderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/wiPhysics_Jolt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/wiPhysics_Box3D.cpp
 )
+list(APPEND SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${WICKED_PHYSICS_SOURCE})
 
 file(GLOB SHADER_FILES CONFIGURE_DEPENDS shaders/*.hlsl shaders/*.hlsli)
 
@@ -173,7 +198,7 @@ target_include_directories(WickedEngine_common SYSTEM PUBLIC
 )
 
 set(WICKEDENGINE_STATIC_LIBRARIES
-    Jolt
+    ${WICKED_PHYSICS_LIBRARY}
     LUA
     Utility
 )
@@ -234,7 +259,7 @@ elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_SYSTEM_PROCESS
     target_compile_options(WickedEngine_common PUBLIC -mfpmath=sse)
 endif()
 
-target_compile_definitions(WickedEngine_common PUBLIC WICKED_CMAKE_BUILD)
+target_compile_definitions(WickedEngine_common PUBLIC WICKED_CMAKE_BUILD ${WICKED_PHYSICS_DEFINITION})
 
 
 if (WIN32)
@@ -297,7 +322,7 @@ add_custom_command(
 set_property(SOURCE
     wiAudio.cpp
     wiOcean.cpp
-    wiPhysics_Jolt.cpp
+    ${WICKED_PHYSICS_SOURCE}
     wiGraphicsDevice_Vulkan.cpp
     wiGraphicsDevice_DX12.cpp
 

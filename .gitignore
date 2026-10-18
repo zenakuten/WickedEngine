@@ -13,6 +13,8 @@
 [Rr]elease/
 x64/
 [Bb]uild/
+build-jolt*/
+build-box3d*/
 cmake-build-*/
 bld/
 [Bb]in/

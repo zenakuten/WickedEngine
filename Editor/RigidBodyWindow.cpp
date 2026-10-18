@@ -10,6 +10,7 @@ void RigidBodyWindow::Create(EditorComponent* _editor)
 
 	wi::gui::Window::Create(ICON_RIGIDBODY " Rigid Body Physics", wi::gui::Window::WindowControls::COLLAPSE | wi::gui::Window::WindowControls::CLOSE | wi::gui::Window::WindowControls::FIT_ALL_WIDGETS_VERTICAL);
 	SetSize(XMFLOAT2(670, 440));
+	SetText(std::string(ICON_RIGIDBODY " Rigid Body Physics [") + wi::physics::GetBackendName() + "]");
 
 	closeButton.SetTooltip("Delete RigidBodyPhysicsComponent");
 	OnClose([=](wi::gui::EventArgs args) {
@@ -55,6 +56,13 @@ void RigidBodyWindow::Create(EditorComponent* _editor)
 	collisionShapeComboBox.AddItem("Triangle Mesh", RigidBodyPhysicsComponent::CollisionShape::TRIANGLE_MESH);
 	collisionShapeComboBox.AddItem("Height Field", RigidBodyPhysicsComponent::CollisionShape::HEIGHTFIELD);
 	collisionShapeComboBox.OnSelect([=](wi::gui::EventArgs args) {
+		if (const char* reason = wi::physics::GetUnsupportedReason((RigidBodyPhysicsComponent::CollisionShape)args.userdata))
+		{
+			wi::backlog::post(reason, wi::backlog::LogLevel::Error);
+			if (auto* component = editor->GetCurrentScene().rigidbodies.GetComponent(entity))
+				collisionShapeComboBox.SetSelectedByUserdataWithoutCallback(component->shape);
+			return;
+		}
 		forEachSelectedPhysicsComponent([](auto physicscomponent, auto args) {
 			RigidBodyPhysicsComponent::CollisionShape shape = (RigidBodyPhysicsComponent::CollisionShape)args.userdata;
 			if (physicscomponent->shape != shape)
@@ -163,6 +171,11 @@ void RigidBodyWindow::Create(EditorComponent* _editor)
 
 	buoyancySlider.Create(0, 2, 0, 1000, "Buoyancy: ");
 	buoyancySlider.SetTooltip("Higher buoyancy will make the bodies float up faster in water.");
+	if (const char* reason = wi::physics::GetUnsupportedReason(wi::physics::Feature::Buoyancy))
+	{
+		buoyancySlider.SetEnabled(false);
+		buoyancySlider.SetTooltip(reason);
+	}
 	buoyancySlider.OnSlide(forEachSelectedPhysicsComponentWithRefresh([](auto physicscomponent, auto args) {
 		physicscomponent->buoyancy = args.fValue;
 	}));
@@ -195,6 +208,24 @@ void RigidBodyWindow::Create(EditorComponent* _editor)
 		physicscomponent->SetLocked2D(args.bValue);
 	}));
 	AddWidget(&locked2DCheckBox);
+	rotationLockedXCheckBox.Create("Lock rotation X: ");
+	rotationLockedXCheckBox.SetTooltip("Lock world X angular motion for ordinary rigid bodies.");
+	rotationLockedXCheckBox.OnClick(forEachSelectedPhysicsComponentWithRefresh([](auto physicscomponent, auto args) {
+		physicscomponent->SetRotationLockedX(args.bValue);
+	}));
+	AddWidget(&rotationLockedXCheckBox);
+	rotationLockedYCheckBox.Create("Lock rotation Y: ");
+	rotationLockedYCheckBox.SetTooltip("Lock world Y angular motion for ordinary rigid bodies.");
+	rotationLockedYCheckBox.OnClick(forEachSelectedPhysicsComponentWithRefresh([](auto physicscomponent, auto args) {
+		physicscomponent->SetRotationLockedY(args.bValue);
+	}));
+	AddWidget(&rotationLockedYCheckBox);
+	rotationLockedZCheckBox.Create("Lock rotation Z: ");
+	rotationLockedZCheckBox.SetTooltip("Lock world Z angular motion for ordinary rigid bodies.");
+	rotationLockedZCheckBox.OnClick(forEachSelectedPhysicsComponentWithRefresh([](auto physicscomponent, auto args) {
+		physicscomponent->SetRotationLockedZ(args.bValue);
+	}));
+	AddWidget(&rotationLockedZCheckBox);
 
 	disabledeactivationCheckBox.Create("Disable Deactivation: ");
 	disabledeactivationCheckBox.SetTooltip("Toggle kinematic behaviour.");
@@ -270,6 +301,14 @@ void RigidBodyWindow::Create(EditorComponent* _editor)
 		physicscomponent->character.gravityFactor = args.fValue;
 	}));
 	AddWidget(&characterGravitySlider);
+	if (const char* reason = wi::physics::GetUnsupportedReason(wi::physics::Feature::Characters))
+	{
+		characterCheckBox.SetEnabled(false);
+		characterCheckBox.SetTooltip(reason);
+		characterSlopeSlider.SetEnabled(false);
+		characterGravitySlider.SetEnabled(false);
+		characterLabel.SetText(reason);
+	}
 
 
 
@@ -574,6 +613,9 @@ void RigidBodyWindow::SetEntity(Entity entity)
 
 		kinematicCheckBox.SetCheck(physicsComponent->IsKinematic());
 		locked2DCheckBox.SetCheck(physicsComponent->IsLocked2D());
+		rotationLockedXCheckBox.SetCheck(physicsComponent->IsRotationLockedX());
+		rotationLockedYCheckBox.SetCheck(physicsComponent->IsRotationLockedY());
+		rotationLockedZCheckBox.SetCheck(physicsComponent->IsRotationLockedZ());
 		disabledeactivationCheckBox.SetCheck(physicsComponent->IsDisableDeactivation());
 		startDeactivatedCheckBox.SetCheck(physicsComponent->IsStartDeactivated());
 
@@ -676,6 +718,9 @@ void RigidBodyWindow::ResizeLayout()
 	layout.add_right(disabledeactivationCheckBox);
 	layout.add_right(kinematicCheckBox);
 	layout.add_right(locked2DCheckBox);
+	layout.add_right(rotationLockedXCheckBox);
+	layout.add_right(rotationLockedYCheckBox);
+	layout.add_right(rotationLockedZCheckBox);
 	layout.add_right(physicsDebugCheckBox);
 
 
@@ -833,4 +878,27 @@ void RigidBodyWindow::ResizeLayout()
 		motorcycleRBrakeTorqueSlider.SetVisible(false);
 	}
 
+	if (const char* reason = wi::physics::GetUnsupportedReason(wi::physics::Feature::Vehicles))
+	{
+		wi::gui::Widget* controls[] = {
+			&vehicleCombo, &vehicleCollisionCombo, &wheelRadiusSlider, &wheelWidthSlider,
+			&chassisHalfWidthSlider, &chassisHalfHeightSlider, &chassisHalfLengthSlider,
+			&frontWheelOffsetSlider, &rearWheelOffsetSlider, &maxTorqueSlider,
+			&clutchStrengthSlider, &maxRollAngleSlider, &maxSteeringAngleSlider,
+			&wheelEntityFrontLeftCombo, &wheelEntityFrontRightCombo,
+			&wheelEntityRearLeftCombo, &wheelEntityRearRightCombo,
+			&fourwheelCheckbox, &motorleanCheckbox, &driveCheckbox,
+			&fSuspensionMinSlider, &fSuspensionMaxSlider, &fSuspensionFrequencySlider,
+			&fSuspensionDampingSlider, &rSuspensionMinSlider, &rSuspensionMaxSlider,
+			&rSuspensionFrequencySlider, &rSuspensionDampingSlider,
+			&motorcycleFBrakeSuspensionAngleSlider, &motorcycleFBrakeTorqueSlider,
+			&motorcycleRBrakeTorqueSlider,
+		};
+		for (auto* control : controls)
+		{
+			control->SetEnabled(false);
+			control->SetTooltip(reason);
+		}
+		vehicleLabel.SetText(reason);
+	}
 }

@@ -34,6 +34,35 @@ You can get the full source code by using Git version control and cloning https:
 - Xbox Series X|S
 - PlayStation 5
 
+### Native CSG authoring
+
+The editor's left-side **CSG** options panel builds ordered additive/subtractive
+cube and polygonal-cone brushes from an initially empty result. Create a preview,
+choose its operation, commit, then explicitly **Rebuild CSG**. Source edits keep
+the last generated result visible until a successful rebuild.
+
+Choose Surface/material, Brush move, Vertex edit or Face drag mode. Source
+outlines and handles use the active perspective/orthographic pane. **Ctrl** snaps
+drags, **Shift-click** toggles vertex groups, **Alt-click** repicks a brush,
+**Esc** cancels a drag and **F** frames the source selection. Orthographic vertex
+picking groups coincident projections. Numeric movement, uniform scale and
+axis/angle rotation are also available. Source brushes remain closed,
+planar-faced convex solids. A vertex move that warps a face splits it into planar
+pieces, which keep the original face's UV mapping and material; moves that would
+make the brush concave or flat, and topology-changing face drags, are rejected.
+
+`wiCSG` is a bounded, deterministic CPU geometry kernel. Native scenes register
+`CSGComponent` in every Scene, retaining source IDs and material bindings through
+serialization/remapping and duplication. Rebuild stages ordinary per-surface
+meshes before replacing generated objects. Native materials/UV edits and unrelated
+entities survive; generated lightmaps must be recreated after rebuilding.
+Use the source tools instead of derived-object transform controls. Undo/redo
+restores source and result together.
+
+The focused CMake test targets are `CSGTest`, `CSGSceneTest` and
+`EditorViewportTest`; they do not require a graphics device. Native scenes remain
+trusted local files, and the internal Boolean BSP is not a runtime level format.
+
 ### How to build: 
 
 <img align="right" src="https://github.com/turanszkij/wickedengine-gifs/raw/main/videoprojectors.gif" width="320px"/>
@@ -73,6 +102,41 @@ make
 ```
 
 <img align="right" src="https://github.com/turanszkij/wickedengine-gifs/raw/main/character_grass.gif" width="320px"/>
+
+#### Physics backend (CMake)
+
+Jolt remains the default. An experimental Box3D rigid-body backend can be selected
+at build time; exactly one backend is compiled and linked:
+
+```bash
+cmake -S . -B build-box3d -DWICKED_PHYSICS_BACKEND=Box3D -DWICKED_USE_SDL3=ON
+cmake --build build-box3d --parallel
+ctest --test-dir build-box3d --output-on-failure
+```
+
+Use `-DWICKED_PHYSICS_BACKEND=Jolt` (or omit the option) for Jolt. Box3D requires
+CMake 3.22 or newer and is vendored, so no separate download is needed. SDL3 is
+independent of the physics selection.
+
+The Box3D adapter supports rigid bodies, primitive/convex/static mesh/heightfield
+shapes, common constraints, ray queries and rigid-body picking. Character and
+vehicle controllers, ragdolls, soft bodies, buoyancy and general SixDOF constraints
+are not supported. Unsupported scene data is retained and diagnosed rather than
+silently converted. There is no runtime switching or Jolt fallback in a Box3D
+build. Native Visual Studio/Xcode project files remain Jolt-only; use CMake for
+the backend selector.
+
+Mesh/heightfield collision is static-only, cylinders use 32-sided hulls, and
+mirrored/sheared geometry is rejected. SwingTwist is limited to circular
+equal-angle configurations; cone half angles must not exceed pi/2. Interactive
+Editor acceptance and installed-package consumer support remain unverified.
+Flat convex hulls use a small, symmetric collision thickness (normally 0.002
+engine units), reported in the log, to preserve kinematic floors/platforms.
+The Box3D Physics Test is rigid-body-only: its crumpling torus and the hidden
+Cloth Physics Test require the unimplemented soft-body solver.
+
+See [WickedEngineBox3D.md](WickedEngineBox3D.md) for the design, feature restrictions,
+verification coverage and remaining work.
 
 #### Mac OS and iOS
 To build  the engine for Mac OS and iOS, use the provided .xcodeproj files with the Xcode development environment, for example:

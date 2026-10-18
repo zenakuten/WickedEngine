@@ -147,6 +147,10 @@
 		1E50AEA32FCEFF2E000EE545 /* wiRenderPath2D.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1EDA7AC92EE1DFE300210D41 /* wiRenderPath2D.cpp */; };
 		1E50AEA42FCEFF2E000EE545 /* wiRenderPath3D_BindLua.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1EDA7ACF2EE1DFE300210D41 /* wiRenderPath3D_BindLua.cpp */; };
 		1E50AEA52FCEFF2E000EE545 /* wiScene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1EDA7AD52EE1DFE300210D41 /* wiScene.cpp */; };
+		C56000000000000000000005 /* wiCSG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C56000000000000000000002 /* wiCSG.cpp */; };
+		C56000000000000000000006 /* wiCSGScene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C56000000000000000000004 /* wiCSGScene.cpp */; };
+		C56000000000000000000007 /* wiCSG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C56000000000000000000002 /* wiCSG.cpp */; };
+		C56000000000000000000008 /* wiCSGScene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C56000000000000000000004 /* wiCSGScene.cpp */; };
 		1E50AEA62FCEFF2E000EE545 /* wiFFTGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1EDA7A7B2EE1DFE300210D41 /* wiFFTGenerator.cpp */; };
 		1E50AEA72FCEFF2E000EE545 /* wiGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1EDA7A862EE1DFE300210D41 /* wiGUI.cpp */; };
 		1E50AEA82FCEFF2E000EE545 /* wiPhysics_BindLua.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1EDA7AB32EE1DFE300210D41 /* wiPhysics_BindLua.cpp */; };
@@ -868,6 +872,10 @@
 		1EDA7AD32EE1DFE300210D41 /* wiResourceManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wiResourceManager.cpp; sourceTree = "<group>"; };
 		1EDA7AD42EE1DFE300210D41 /* wiScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wiScene.h; sourceTree = "<group>"; };
 		1EDA7AD52EE1DFE300210D41 /* wiScene.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wiScene.cpp; sourceTree = "<group>"; };
+		C56000000000000000000001 /* wiCSG.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wiCSG.h; sourceTree = "<group>"; };
+		C56000000000000000000002 /* wiCSG.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wiCSG.cpp; sourceTree = "<group>"; };
+		C56000000000000000000003 /* wiCSGScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wiCSGScene.h; sourceTree = "<group>"; };
+		C56000000000000000000004 /* wiCSGScene.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wiCSGScene.cpp; sourceTree = "<group>"; };
 		1EDA7AD62EE1DFE300210D41 /* wiScene_BindLua.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wiScene_BindLua.h; sourceTree = "<group>"; };
 		1EDA7AD72EE1DFE300210D41 /* wiScene_BindLua.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wiScene_BindLua.cpp; sourceTree = "<group>"; };
 		1EDA7AD82EE1DFE300210D41 /* wiScene_Components.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wiScene_Components.h; sourceTree = "<group>"; };
@@ -1825,6 +1833,10 @@
 				1EDA7AD32EE1DFE300210D41 /* wiResourceManager.cpp */,
 				1EDA7AD42EE1DFE300210D41 /* wiScene.h */,
 				1EDA7AD52EE1DFE300210D41 /* wiScene.cpp */,
+				C56000000000000000000001 /* wiCSG.h */,
+				C56000000000000000000002 /* wiCSG.cpp */,
+				C56000000000000000000003 /* wiCSGScene.h */,
+				C56000000000000000000004 /* wiCSGScene.cpp */,
 				1EDA7AD62EE1DFE300210D41 /* wiScene_BindLua.h */,
 				1EDA7AD72EE1DFE300210D41 /* wiScene_BindLua.cpp */,
 				1EDA7AD82EE1DFE300210D41 /* wiScene_Components.h */,
@@ -2463,6 +2475,8 @@
 				1E50AEA32FCEFF2E000EE545 /* wiRenderPath2D.cpp in Sources */,
 				1E50AEA42FCEFF2E000EE545 /* wiRenderPath3D_BindLua.cpp in Sources */,
 				1E50AEA52FCEFF2E000EE545 /* wiScene.cpp in Sources */,
+				C56000000000000000000005 /* wiCSG.cpp in Sources */,
+				C56000000000000000000006 /* wiCSGScene.cpp in Sources */,
 				1E50AEA62FCEFF2E000EE545 /* wiFFTGenerator.cpp in Sources */,
 				1E50AEA72FCEFF2E000EE545 /* wiGUI.cpp in Sources */,
 				1E50AEA82FCEFF2E000EE545 /* wiPhysics_BindLua.cpp in Sources */,
@@ -2609,6 +2623,8 @@
 				1EDA7B472EE1DFE300210D41 /* wiRenderPath2D.cpp in Sources */,
 				1EDA7B482EE1DFE300210D41 /* wiRenderPath3D_BindLua.cpp in Sources */,
 				1EDA7B492EE1DFE300210D41 /* wiScene.cpp in Sources */,
+				C56000000000000000000007 /* wiCSG.cpp in Sources */,
+				C56000000000000000000008 /* wiCSGScene.cpp in Sources */,
 				1EDA7B4A2EE1DFE300210D41 /* wiFFTGenerator.cpp in Sources */,
 				1EDA7B4B2EE1DFE300210D41 /* wiGUI.cpp in Sources */,
 				1EDA7B4C2EE1DFE300210D41 /* wiPhysics_BindLua.cpp in Sources */,

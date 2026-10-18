@@ -1156,6 +1156,7 @@ namespace wi::scene
 
 		topdown_hierarchy.clear();
 		gaussian_scene.Clear();
+		wi::physics::FlushDeferredDeletes(*this);
 	}
 	void Scene::MergeFastInternal(Scene& other)
 	{

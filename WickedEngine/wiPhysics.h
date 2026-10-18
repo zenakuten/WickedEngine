@@ -8,6 +8,20 @@
 
 namespace wi::physics
 {
+	enum class Feature
+	{
+		Characters,
+		Ragdolls,
+		Vehicles,
+		SoftBodies,
+		Buoyancy,
+	};
+	const char* GetBackendName();
+	// A null reason means supported; non-null reasons describe unavailable features.
+	const char* GetUnsupportedReason(Feature feature);
+	const char* GetUnsupportedReason(wi::scene::RigidBodyPhysicsComponent::CollisionShape shape);
+	const char* GetUnsupportedReason(wi::scene::PhysicsConstraintComponent::Type type);
+
 	// Initializes the physics engine
 	void Initialize();
 
@@ -203,6 +217,7 @@ namespace wi::physics
 	void OptimizeBroadPhase(wi::scene::Scene& scene);
 
 	void ResetPhysicsObjects(wi::scene::Scene& scene);
+	void FlushDeferredDeletes(wi::scene::Scene& scene);
 
 	XMFLOAT3 GetSoftBodyNodePosition(
 		wi::scene::SoftBodyPhysicsComponent& physicscomponent,
@@ -233,7 +248,8 @@ namespace wi::physics
 	};
 	RayIntersectionResult Intersects(
 		const wi::scene::Scene& scene,
-		wi::primitive::Ray ray
+		wi::primitive::Ray ray,
+		wi::ecs::Entity ignore_entity = wi::ecs::INVALID_ENTITY
 	);
 
 	struct PickDragOperation

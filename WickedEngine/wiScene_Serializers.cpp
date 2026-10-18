@@ -12,6 +12,49 @@ using namespace wi::ecs;
 
 namespace wi::scene
 {
+	void CSGComponent::Serialize(wi::Archive& archive, EntitySerializer& seri)
+	{
+		auto value = [&](auto& v) {
+			if (archive.IsReadMode()) archive >> v;
+			else archive << v;
+		};
+		auto point = [&](wi::csg::Point& p) { value(p.x); value(p.y); value(p.z); };
+		auto count = [&](auto& list) {
+			uint64_t size = list.size();
+			value(size);
+			if (archive.IsReadMode()) list.resize(size);
+		};
+		value(nextBrushID);
+		value(dirty);
+		count(brushes);
+		for (auto& brush : brushes)
+		{
+			value(brush.id);
+			uint32_t operation = uint32_t(brush.operation);
+			value(operation);
+			brush.operation = wi::csg::Operation(operation);
+			value(brush.enabled);
+			count(brush.vertices);
+			for (auto& vertex : brush.vertices) point(vertex);
+			count(brush.faces);
+			for (auto& face : brush.faces)
+			{
+				value(face.id);
+				count(face.vertices);
+				for (auto& index : face.vertices) value(index);
+				point(face.u); point(face.v);
+				value(face.offsetU); value(face.offsetV);
+			}
+		}
+		count(surfaces);
+		for (auto& surface : surfaces)
+		{
+			value(surface.brushID); value(surface.faceID);
+			SerializeEntity(archive, surface.material, seri);
+			SerializeEntity(archive, surface.object, seri);
+		}
+	}
+
 	struct DEPRECATED_PreviousFrameTransformComponent
 	{
 		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri) { /*this never serialized any data*/ }
@@ -541,7 +584,10 @@ namespace wi::scene
 			}
 
 			wi::jobsystem::Execute(seri.ctx, [&](wi::jobsystem::JobArgs args) {
-				CreateRenderData();
+				if (wi::graphics::GetDevice() != nullptr)
+				{
+					CreateRenderData();
+				}
 
 				if (IsBVHEnabled())
 				{
@@ -2530,6 +2576,11 @@ namespace wi::scene
 				archive >> value;
 				string_values.set(name, value);
 			}
+			HideIcon = false;
+			if (seri.GetVersion() >= 1)
+			{
+				archive >> HideIcon;
+			}
 		}
 		else
 		{
@@ -2563,6 +2614,10 @@ namespace wi::scene
 			{
 				archive << x.first;
 				archive << string_values.get(x.first);
+			}
+			if (seri.GetVersion() >= 1)
+			{
+				archive << HideIcon;
 			}
 		}
 	}

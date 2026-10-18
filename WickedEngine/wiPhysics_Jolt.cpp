@@ -640,6 +640,11 @@ namespace wi::physics
 				{
 					settings.mAllowedDOFs = EAllowedDOFs::Plane2D;
 				}
+				uint8_t dofs = static_cast<uint8_t>(settings.mAllowedDOFs);
+				if (physicscomponent.IsRotationLockedX()) dofs &= ~static_cast<uint8_t>(EAllowedDOFs::RotationX);
+				if (physicscomponent.IsRotationLockedY()) dofs &= ~static_cast<uint8_t>(EAllowedDOFs::RotationY);
+				if (physicscomponent.IsRotationLockedZ()) dofs &= ~static_cast<uint8_t>(EAllowedDOFs::RotationZ);
+				settings.mAllowedDOFs = static_cast<EAllowedDOFs>(dofs);
 
 				physicsobject.friction = settings.mFriction;
 				physicsobject.restitution = settings.mRestitution;
@@ -1938,6 +1943,52 @@ namespace wi::physics
 
 	}
 	using namespace jolt;
+
+	const char* GetBackendName() { return "Jolt"; }
+	const char* GetUnsupportedReason(Feature feature)
+	{
+		switch (feature)
+		{
+		case Feature::Characters:
+		case Feature::Ragdolls:
+		case Feature::Vehicles:
+		case Feature::SoftBodies:
+		case Feature::Buoyancy:
+			return nullptr;
+		}
+		return "Unknown physics feature";
+	}
+	const char* GetUnsupportedReason(RigidBodyPhysicsComponent::CollisionShape shape)
+	{
+		switch (shape)
+		{
+		case RigidBodyPhysicsComponent::BOX:
+		case RigidBodyPhysicsComponent::SPHERE:
+		case RigidBodyPhysicsComponent::CAPSULE:
+		case RigidBodyPhysicsComponent::CYLINDER:
+		case RigidBodyPhysicsComponent::CONVEX_HULL:
+		case RigidBodyPhysicsComponent::TRIANGLE_MESH:
+		case RigidBodyPhysicsComponent::HEIGHTFIELD:
+			return nullptr;
+		}
+		return "Unknown collision shape";
+	}
+	const char* GetUnsupportedReason(PhysicsConstraintComponent::Type type)
+	{
+		switch (type)
+		{
+		case PhysicsConstraintComponent::Type::Fixed:
+		case PhysicsConstraintComponent::Type::Point:
+		case PhysicsConstraintComponent::Type::Distance:
+		case PhysicsConstraintComponent::Type::Hinge:
+		case PhysicsConstraintComponent::Type::Cone:
+		case PhysicsConstraintComponent::Type::SixDOF:
+		case PhysicsConstraintComponent::Type::SwingTwist:
+		case PhysicsConstraintComponent::Type::Slider:
+			return nullptr;
+		}
+		return "Unknown constraint type";
+	}
 
 	void Initialize()
 	{
@@ -3781,7 +3832,7 @@ namespace wi::physics
 		if (physicscomponent.physicsobject == nullptr)
 			return false;
 		const Constraint& constraint = GetConstraint(physicscomponent);
-		return constraint.constraint->GetEnabled();
+		return !constraint.constraint->GetEnabled();
 	}
 	void SetConstraintBroken(wi::scene::PhysicsConstraintComponent& physicscomponent, bool broken)
 	{
@@ -3849,6 +3900,8 @@ namespace wi::physics
 		PhysicsScene& physics_scene = *(PhysicsScene*)scene.physics_scene.get();
 		physics_scene.optimize_broadphase = true;
 	}
+
+	void FlushDeferredDeletes(Scene&) {}
 
 	void ResetPhysicsObjects(Scene& scene)
 	{
@@ -3973,6 +4026,7 @@ namespace wi::physics
 	public:
 		const Scene* scene = nullptr;
 		const PhysicsScene* physics_scene = nullptr;
+		Entity ignore_entity = INVALID_ENTITY;
 
 		using ResultType = typename CollectorType::ResultType;
 		void AddHit(const ResultType& inResult) override
@@ -3988,6 +4042,9 @@ namespace wi::physics
 			if (body.IsRigidBody())
 			{
 				const RigidBody* physicsobject = (RigidBody*)userdata;
+				if (ignore_entity != INVALID_ENTITY &&
+					(physicsobject->entity == ignore_entity || physicsobject->humanoid_ragdoll_entity == ignore_entity))
+					return;
 				if (physicsobject->humanoid_ragdoll_entity != INVALID_ENTITY)
 				{
 					const HumanoidComponent* humanoid = scene->humanoids.GetComponent(physicsobject->humanoid_ragdoll_entity);
@@ -3996,13 +4053,17 @@ namespace wi::physics
 				}
 			}
 
+			if (body.IsSoftBody() && ignore_entity != INVALID_ENTITY &&
+				((const SoftBody*)userdata)->entity == ignore_entity)
+				return;
 			ClosestHitCollisionCollector<CollectorType>::AddHit(inResult);
 		}
 	};
 
 	RayIntersectionResult Intersects(
 		const wi::scene::Scene& scene,
-		wi::primitive::Ray ray
+		wi::primitive::Ray ray,
+		Entity ignore_entity
 	)
 	{
 		RayIntersectionResult result;
@@ -4030,6 +4091,7 @@ namespace wi::physics
 		WickedClosestHitCollector<CastRayCollector> collector;
 		collector.scene = &scene;
 		collector.physics_scene = &physics_scene;
+		collector.ignore_entity = ignore_entity;
 
 		physics_scene.physics_system.GetNarrowPhaseQuery().CastRay(inray, settings, collector);
 		if (!collector.HadHit())

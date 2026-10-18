@@ -105,7 +105,13 @@ namespace Translator_Internal
 }
 using namespace Translator_Internal;
 
-void Translator::Update(const CameraComponent& camera, const XMFLOAT4& currentMouse, const wi::Canvas& canvas)
+bool Translator::IsGridSnapping() const
+{
+	const bool control = wi::input::Down(wi::input::KEYBOARD_BUTTON_LCONTROL) || wi::input::Down(wi::input::KEYBOARD_BUTTON_RCONTROL);
+	return translate_snap > 0 && std::isfinite(translate_snap) && grid_snap != control;
+}
+
+void Translator::Update(const CameraComponent& camera, const XMFLOAT4& currentMouse, const wi::Canvas& canvas, bool inputEnabled)
 {
 	if (selected.empty())
 	{
@@ -147,6 +153,11 @@ void Translator::Update(const CameraComponent& camera, const XMFLOAT4& currentMo
 			state = TRANSLATOR_IDLE;
 			return;
 		}
+		if (!inputEnabled && !dragging)
+		{
+			state = TRANSLATOR_IDLE;
+			return;
+		}
 
 		const Ray ray = wi::renderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y, canvas, camera);
 		const XMVECTOR rayOrigin = XMLoadFloat3(&ray.origin);
@@ -159,7 +170,7 @@ void Translator::Update(const CameraComponent& camera, const XMFLOAT4& currentMo
 			// Decide which state to enter for dragging:
 			XMFLOAT3 p = transform.GetPosition();
 
-			dist = is2D ? (camera.ortho_vertical_size * 0.025f) : std::max(wi::math::Distance(p, camera.Eye) * 0.05f, 0.0001f) * tool_scale;
+			dist = camera.IsOrtho() ? (camera.ortho_vertical_size * 0.025f) : std::max(wi::math::Distance(p, camera.Eye) * 0.05f, 0.0001f) * tool_scale;
 
 			if (isRotator)
 			{
@@ -483,15 +494,15 @@ void Translator::Update(const CameraComponent& camera, const XMFLOAT4& currentMo
 					transform.Scale(scale);
 				}
 
+				// Snap to grid mode:
+				if (isTranslator && IsGridSnapping())
+				{
+					transform.translation_local.x = std::round(transform.translation_local.x / translate_snap) * translate_snap;
+					transform.translation_local.y = std::round(transform.translation_local.y / translate_snap) * translate_snap;
+					transform.translation_local.z = std::round(transform.translation_local.z / translate_snap) * translate_snap;
+				}
 				if (wi::input::Down(wi::input::BUTTON::KEYBOARD_BUTTON_LCONTROL) || wi::input::Down(wi::input::BUTTON::KEYBOARD_BUTTON_RCONTROL))
 				{
-					// Snap to grid mode:
-					if (isTranslator)
-					{
-						transform.translation_local.x = std::round(transform.translation_local.x / translate_snap) * translate_snap;
-						transform.translation_local.y = std::round(transform.translation_local.y / translate_snap) * translate_snap;
-						transform.translation_local.z = std::round(transform.translation_local.z / translate_snap) * translate_snap;
-					}
 					if (isScalator)
 					{
 						transform.scale_local.x = std::max(scale_snap, std::round(transform.scale_local.x / scale_snap) * scale_snap);
@@ -607,6 +618,8 @@ void Translator::Draw(const CameraComponent& camera, const XMFLOAT4& currentMous
 	cam_tmp.jitter = XMFLOAT2(0, 0); // remove temporal jitter
 	cam_tmp.UpdateCamera();
 	XMMATRIX VP = cam_tmp.GetViewProjection();
+	const float dist = camera.IsOrtho() ? camera.ortho_vertical_size * 0.025f :
+		std::max(wi::math::Distance(transform.GetPosition(), camera.Eye) * 0.05f, 0.0001f) * tool_scale;
 
 	MiscCB sb;
 

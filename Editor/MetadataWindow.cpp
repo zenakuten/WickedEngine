@@ -52,6 +52,13 @@ void MetadataWindow::Create(EditorComponent* _editor)
 	}));
 	AddWidget(&presetCombo);
 
+	hideIconCheckBox.Create("HideIcon");
+	hideIconCheckBox.SetTooltip("Hide the Metadata icon and preset helpers in the scene view, without hiding the object.");
+	hideIconCheckBox.OnClick(forEachSelected([] (auto metadata, auto args) {
+		metadata->HideIcon = args.bValue;
+	}));
+	AddWidget(&hideIconCheckBox);
+
 	addCombo.Create("");
 	addCombo.SetInvalidSelectionText("+");
 	addCombo.SetDropArrowEnabled(false);
@@ -111,6 +118,7 @@ void MetadataWindow::SetEntity(Entity entity)
 	if (metadata != nullptr)
 	{
 		presetCombo.SetSelectedByUserdataWithoutCallback((uint64_t)metadata->preset);
+		hideIconCheckBox.SetCheck(metadata->HideIcon);
 
 		if (changed)
 		{
@@ -316,6 +324,7 @@ void MetadataWindow::ResizeLayout()
 	layout.margin_left = 100;
 
 	layout.add(presetCombo);
+	layout.add(hideIconCheckBox);
 	layout.add_fullwidth(addCombo);
 
 	layout.jump();

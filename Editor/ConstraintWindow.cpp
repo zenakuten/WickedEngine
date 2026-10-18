@@ -93,8 +93,19 @@ void ConstraintWindow::Create(EditorComponent* _editor)
 	typeComboBox.AddItem("Six DOF", (uint64_t)PhysicsConstraintComponent::Type::SixDOF);
 	typeComboBox.AddItem("Swing Twist", (uint64_t)PhysicsConstraintComponent::Type::SwingTwist);
 	typeComboBox.AddItem("Slider", (uint64_t)PhysicsConstraintComponent::Type::Slider);
-	typeComboBox.OnSelect(forEachSelected([](auto physicscomponent, auto args) {
+	for (size_t i = 0; i < typeComboBox.GetItemCount(); ++i)
+	{
+		if (wi::physics::GetUnsupportedReason((PhysicsConstraintComponent::Type)typeComboBox.GetItemUserData((int)i)))
+			typeComboBox.SetItemText((int)i, typeComboBox.GetItemText((int)i) + " (unsupported)");
+	}
+	typeComboBox.OnSelect(forEachSelected([this](auto physicscomponent, auto args) {
 		PhysicsConstraintComponent::Type type = (PhysicsConstraintComponent::Type)args.userdata;
+		if (const char* reason = wi::physics::GetUnsupportedReason(type))
+		{
+			wi::backlog::post(reason, wi::backlog::LogLevel::Error);
+			typeComboBox.SetSelectedByUserdataWithoutCallback((uint64_t)physicscomponent->type);
+			return;
+		}
 		if (physicscomponent->type != type)
 		{
 			physicscomponent->physicsobject.reset();

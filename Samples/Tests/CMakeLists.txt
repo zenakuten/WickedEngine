@@ -48,6 +48,33 @@ target_link_libraries(CustomShaderLifecycleTest PRIVATE WickedEngine)
 add_test(NAME CustomShaderLifecycleTest COMMAND CustomShaderLifecycleTest)
 set_target_properties(CustomShaderLifecycleTest PROPERTIES FOLDER "Tests")
 
+add_executable(PhysicsContractTest PhysicsContractTest.cpp)
+target_link_libraries(PhysicsContractTest PRIVATE WickedEngine)
+add_test(NAME PhysicsContractTest COMMAND PhysicsContractTest)
+set_tests_properties(PhysicsContractTest PROPERTIES TIMEOUT 120)
+set_target_properties(PhysicsContractTest PROPERTIES FOLDER "Tests")
+
+add_executable(EditorViewportTest EditorViewportTest.cpp ../../Editor/Translator.cpp)
+target_link_libraries(EditorViewportTest PRIVATE WickedEngine)
+add_test(NAME EditorViewportTest COMMAND EditorViewportTest)
+set_target_properties(EditorViewportTest PROPERTIES FOLDER "Tests")
+
+add_executable(CSGTest CSGTest.cpp ../../WickedEngine/wiCSG.cpp)
+add_test(NAME CSGTest COMMAND CSGTest)
+set_tests_properties(CSGTest PROPERTIES TIMEOUT 30)
+set_target_properties(CSGTest PROPERTIES FOLDER "Tests")
+
+add_executable(CSGSnapTest CSGSnapTest.cpp ../../WickedEngine/wiCSG.cpp)
+add_test(NAME CSGSnapTest COMMAND CSGSnapTest)
+set_tests_properties(CSGSnapTest PROPERTIES TIMEOUT 30)
+set_target_properties(CSGSnapTest PROPERTIES FOLDER "Tests")
+
+add_executable(CSGSceneTest CSGSceneTest.cpp)
+target_link_libraries(CSGSceneTest PRIVATE WickedEngine)
+add_test(NAME CSGSceneTest COMMAND CSGSceneTest)
+set_tests_properties(CSGSceneTest PROPERTIES TIMEOUT 30)
+set_target_properties(CSGSceneTest PROPERTIES FOLDER "Tests")
+
 
 if (MSVC)
 	set_property(TARGET Tests PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

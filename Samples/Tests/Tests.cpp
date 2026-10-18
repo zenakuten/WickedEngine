@@ -149,8 +149,10 @@ void TestsRenderer::Load()
 	testSelector.AddItem("Lua Script", LUASCRIPT);
 	testSelector.AddItem("Water Test", WATERTEST);
 	testSelector.AddItem("Shadows Test", SHADOWSTEST);
-	testSelector.AddItem("Physics Test", PHYSICSTEST);
-	testSelector.AddItem("Cloth Physics Test", CLOTHPHYSICSTEST);
+	testSelector.AddItem(wi::physics::GetUnsupportedReason(wi::physics::Feature::SoftBodies) == nullptr ?
+		"Physics Test" : "Physics Test (rigid bodies only)", PHYSICSTEST);
+	if (wi::physics::GetUnsupportedReason(wi::physics::Feature::SoftBodies) == nullptr)
+		testSelector.AddItem("Cloth Physics Test", CLOTHPHYSICSTEST);
 	testSelector.AddItem("Job System Test", JOBSYSTEMTEST);
 	testSelector.AddItem("Font Test", FONTTEST);
 	testSelector.AddItem("Volumetric Test", VOLUMETRICTEST);

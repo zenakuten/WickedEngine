@@ -12,6 +12,8 @@
 #include "PaintToolWindow.h"
 #include "GeneralWindow.h"
 #include "IconDefinitions.h"
+#include "SceneViewport.h"
+#include "CSGWindow.h"
 
 class Editor;
 class EditorComponent : public wi::RenderPath2D
@@ -27,6 +29,10 @@ public:
 	wi::gui::Button rotateButton;
 	wi::gui::Button scaleButton;
 	wi::gui::Button localGlobalButton;
+	wi::gui::Button gridSnapButton;
+	wi::gui::ComboBox gridSizeCombo;
+	void SetGridSize(int index);
+	void ToggleGridSnap();
 
 	wi::gui::Button physicsButton;
 
@@ -76,17 +82,37 @@ public:
 	wi::gui::Button cameraButton;
 	wi::gui::Button materialsButton;
 	wi::gui::Button paintToolButton;
+	wi::gui::Button csgButton;
 
 	wi::gui::ComboBox guiScalingCombo;
 
 	bool is_2D_mode = false;
 	wi::gui::Button is2DModeButton;
+	wi::gui::Button fourViewsButton;
+	wi::gui::Button maximizeViewButton;
+	bool fourViews = false;
+	int activeView = 0;
+	int maximizedView = -1;
+	bool viewportMouseCaptured = false;
+	SceneViewportLayout viewportLayout;
+	std::array<wi::Canvas, 4> viewportCanvases;
+	std::array<wi::graphics::Texture, 3> orthoTargets;
+	OrthographicRenderer orthoRenderer;
+	bool QuadViewsEnabled() const { return fourViews && !is_2D_mode && !drive_mode; }
+	wi::scene::CameraComponent& GetInteractionCamera();
+	const wi::Canvas& GetInteractionCanvas() const;
+	int GetSceneViewportAtPointer() const;
+	void UpdateSceneViewports();
+	void ResizeSceneViewports(const wi::graphics::Viewport& area);
+	void RenderOrthographicViews() const;
+	void ComposeSceneViewports(wi::graphics::CommandList cmd) const;
 
 	GeneralWindow generalWnd;
 	GraphicsWindow graphicsWnd;
 	CameraWindow cameraWnd;
 	MaterialPickerWindow materialPickerWnd;
 	PaintToolWindow paintToolWnd;
+	CSGWindow csgWnd;
 
 	wi::primitive::Ray pickRay;
 	wi::physics::PickDragOperation physicsDragOp;
@@ -183,6 +209,7 @@ public:
 		HISTORYOP_COMPONENT_DATA,	// generic component data changed
 		HISTORYOP_PAINTTOOL,		// paint tool interaction
 		HISTORYOP_ADD_TO_SPLINE,	// Spline node added
+		HISTORYOP_CSG,
 		HISTORYOP_NONE
 	};
 
@@ -232,6 +259,9 @@ public:
 		wi::scene::CameraComponent camera;
 		wi::scene::TransformComponent camera_transform;
 		wi::scene::TransformComponent camera_target;
+		std::array<OrthographicView, 3> orthographic;
+		bool orthographicInitialized = false;
+		CSGEditState csg;
 		wi::vector<wi::Archive> history;
 		int historyPos = -1;
 		bool has_unsaved_changes = false;

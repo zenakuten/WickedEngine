@@ -61,11 +61,12 @@ namespace wi::scene
 		wi::ecs::ComponentManager<wi::Sprite>& sprites = componentLibrary.Register<wi::Sprite>("wi::scene::Scene::sprites", 2); // version = 2
 		wi::ecs::ComponentManager<wi::SpriteFont>& fonts = componentLibrary.Register<wi::SpriteFont>("wi::scene::Scene::fonts");
 		wi::ecs::ComponentManager<wi::VoxelGrid>& voxel_grids = componentLibrary.Register<wi::VoxelGrid>("wi::scene::Scene::voxel_grids");
-		wi::ecs::ComponentManager<MetadataComponent>& metadatas = componentLibrary.Register<MetadataComponent>("wi::scene::Scene::metadatas");
+		wi::ecs::ComponentManager<MetadataComponent>& metadatas = componentLibrary.Register<MetadataComponent>("wi::scene::Scene::metadatas", 1);
 		wi::ecs::ComponentManager<CharacterComponent>& characters = componentLibrary.Register<CharacterComponent>("wi::scene::Scene::characters");
 		wi::ecs::ComponentManager<PhysicsConstraintComponent>& constraints = componentLibrary.Register<PhysicsConstraintComponent>("wi::scene::Scene::constraints", 6); // version = 6
 		wi::ecs::ComponentManager<SplineComponent>& splines = componentLibrary.Register<SplineComponent>("wi::scene::Scene::splines", 4); // version = 4
 		wi::ecs::ComponentManager<wi::GaussianSplatModel>& gaussian_splats = componentLibrary.Register<wi::GaussianSplatModel>("wi::scene::Scene::gaussian_splats");
+		wi::ecs::ComponentManager<CSGComponent>& csgs = componentLibrary.Register<CSGComponent>("wi::scene::Scene::csgs", 1);
 
 		// Non-serialized attributes:
 		float dt = 0;

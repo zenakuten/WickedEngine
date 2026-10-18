@@ -123,6 +123,17 @@ void SoftBodyWindow::Create(EditorComponent* _editor)
 	}));
 	AddWidget(&windCheckbox);
 
+	if (const char* reason = wi::physics::GetUnsupportedReason(wi::physics::Feature::SoftBodies))
+	{
+		infoLabel.SetText(reason);
+		wi::gui::Widget* controls[] = { &resetButton, &detailSlider, &massSlider,
+			&frictionSlider, &restitutionSlider, &pressureSlider, &vertexRadiusSlider, &windCheckbox };
+		for (auto* control : controls)
+		{
+			control->SetEnabled(false);
+			control->SetTooltip(reason);
+		}
+	}
 
 
 	SetMinimized(true);

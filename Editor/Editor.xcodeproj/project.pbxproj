@@ -30,6 +30,8 @@
 		1E50AFD32FD044D5000EE545 /* DecalWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1E73E65F2F0510A90090D1DA /* DecalWindow.cpp */; };
 		1E50AFD42FD044D5000EE545 /* DummyVisualizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1E73E6682F0510A90090D1DA /* DummyVisualizer.cpp */; };
 		1E50AFD52FD044D5000EE545 /* Editor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1E73E66A2F0510A90090D1DA /* Editor.cpp */; };
+		C56100000000000000000003 /* CSGWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C56100000000000000000002 /* CSGWindow.cpp */; };
+		C56100000000000000000004 /* CSGWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C56100000000000000000002 /* CSGWindow.cpp */; };
 		1E50AFD62FD044D5000EE545 /* EmbeddedResources.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1E73E6712F0510A90090D1DA /* EmbeddedResources.cpp */; };
 		1E50AFD72FD044D5000EE545 /* EmitterWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1E73E6732F0510A90090D1DA /* EmitterWindow.cpp */; };
 		1E50AFD82FD044D5000EE545 /* EnvProbeWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1E73E6752F0510A90090D1DA /* EnvProbeWindow.cpp */; };
@@ -221,6 +223,8 @@
 		1E73E6682F0510A90090D1DA /* DummyVisualizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DummyVisualizer.cpp; sourceTree = "<group>"; };
 		1E73E6692F0510A90090D1DA /* Editor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Editor.h; sourceTree = "<group>"; };
 		1E73E66A2F0510A90090D1DA /* Editor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Editor.cpp; sourceTree = "<group>"; };
+		C56100000000000000000001 /* CSGWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSGWindow.h; sourceTree = "<group>"; };
+		C56100000000000000000002 /* CSGWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSGWindow.cpp; sourceTree = "<group>"; };
 		1E73E6712F0510A90090D1DA /* EmbeddedResources.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EmbeddedResources.cpp; sourceTree = "<group>"; };
 		1E73E6722F0510A90090D1DA /* EmitterWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EmitterWindow.h; sourceTree = "<group>"; };
 		1E73E6732F0510A90090D1DA /* EmitterWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EmitterWindow.cpp; sourceTree = "<group>"; };
@@ -421,6 +425,8 @@
 				1E73E6682F0510A90090D1DA /* DummyVisualizer.cpp */,
 				1E73E6692F0510A90090D1DA /* Editor.h */,
 				1E73E66A2F0510A90090D1DA /* Editor.cpp */,
+				C56100000000000000000001 /* CSGWindow.h */,
+				C56100000000000000000002 /* CSGWindow.cpp */,
 				1E73E6712F0510A90090D1DA /* EmbeddedResources.cpp */,
 				1E73E6722F0510A90090D1DA /* EmitterWindow.h */,
 				1E73E6732F0510A90090D1DA /* EmitterWindow.cpp */,
@@ -722,6 +728,7 @@
 				1E50AFD32FD044D5000EE545 /* DecalWindow.cpp in Sources */,
 				1E50AFD42FD044D5000EE545 /* DummyVisualizer.cpp in Sources */,
 				1E50AFD52FD044D5000EE545 /* Editor.cpp in Sources */,
+				C56100000000000000000003 /* CSGWindow.cpp in Sources */,
 				1E50AFD62FD044D5000EE545 /* EmbeddedResources.cpp in Sources */,
 				1E50AFD72FD044D5000EE545 /* EmitterWindow.cpp in Sources */,
 				1E50AFD82FD044D5000EE545 /* EnvProbeWindow.cpp in Sources */,
@@ -821,6 +828,7 @@
 				1E73E7062F0510A90090D1DA /* SplineWindow.cpp in Sources */,
 				1E73E7072F0510A90090D1DA /* ModelImporter_FBX.cpp in Sources */,
 				1E73E7082F0510A90090D1DA /* Editor.cpp in Sources */,
+				C56100000000000000000004 /* CSGWindow.cpp in Sources */,
 				1E73E70A2F0510A90090D1DA /* EmbeddedResources.cpp in Sources */,
 				1E73E70B2F0510A90090D1DA /* xatlas.cpp in Sources */,
 				1E73E70C2F0510A90090D1DA /* EmitterWindow.cpp in Sources */,

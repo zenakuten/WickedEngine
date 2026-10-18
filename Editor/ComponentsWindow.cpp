@@ -492,7 +492,8 @@ void ComponentsWindow::Create(EditorComponent* _editor)
 	newComponentCombo.AddItem("Animation " ICON_ANIMATION, ADD_ANIMATION);
 	newComponentCombo.AddItem("Script " ICON_SCRIPT, ADD_SCRIPT);
 	newComponentCombo.AddItem("Rigid Body Physics " ICON_RIGIDBODY, ADD_RIGIDBODY);
-	newComponentCombo.AddItem("Soft Body Physics " ICON_SOFTBODY, ADD_SOFTBODY);
+	if (wi::physics::GetUnsupportedReason(wi::physics::Feature::SoftBodies) == nullptr)
+		newComponentCombo.AddItem("Soft Body Physics " ICON_SOFTBODY, ADD_SOFTBODY);
 	newComponentCombo.AddItem("Collider " ICON_COLLIDER, ADD_COLLIDER);
 	newComponentCombo.AddItem("Camera " ICON_CAMERA, ADD_CAMERA);
 	newComponentCombo.AddItem("Video " ICON_VIDEO, ADD_VIDEO);

@@ -65,6 +65,7 @@ namespace wi::backlog
 		std::ofstream logFileStream;
 		std::string currentLogFilePath;
 		std::mutex flushMutex; // Synchronous flush requests
+		std::mutex streamMutex;
 
 		void Start(const std::string& filepath)
 		{
@@ -117,6 +118,7 @@ namespace wi::backlog
 
 		void WriterLoop()
 		{
+			std::deque<std::string> localQueue;
 			while (running.load())
 			{
 				std::unique_lock lock(queueMutex);
@@ -131,7 +133,7 @@ namespace wi::backlog
 					break;
 
 				// Process all queued entries
-				static std::deque<std::string> localQueue;
+				std::scoped_lock streamLock(streamMutex);
 				std::swap(localQueue, writeQueue);
 				lock.unlock();
 
@@ -170,10 +172,11 @@ namespace wi::backlog
 		void FlushQueue()
 		{
 			std::unique_lock lock(queueMutex);
-			static thread_local std::deque<std::string> localQueue;
+			std::deque<std::string> localQueue;
 			std::swap(localQueue, writeQueue);
 			lock.unlock();
 
+			std::scoped_lock streamLock(streamMutex);
 			WriteEntries(localQueue);
 			localQueue.clear();
 
@@ -211,6 +214,7 @@ namespace wi::backlog
 			queueLock.unlock();
 
 			// Force file flush
+			std::scoped_lock streamLock(streamMutex);
 			if (logFileStream.is_open())
 			{
 				logFileStream.flush();
@@ -228,6 +232,7 @@ namespace wi::backlog
 
 			// Flush and close current file
 			FlushQueue();
+			std::scoped_lock streamLock(streamMutex);
 			if (logFileStream.is_open())
 			{
 				logFileStream.close();

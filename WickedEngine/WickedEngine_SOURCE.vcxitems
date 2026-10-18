@@ -480,6 +480,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)wiRenderer_BindLua.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)wiResourceManager.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)wiScene.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)wiCSG.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)wiCSGScene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)wiScene_BindLua.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)wiScene_Decl.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)wiSpinLock.h" />
@@ -851,6 +853,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)wiRenderer_BindLua.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)wiResourceManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)wiScene.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)wiCSG.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)wiCSGScene.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)wiScene_BindLua.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)wiScene_Serializers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)wiSprite.cpp" />

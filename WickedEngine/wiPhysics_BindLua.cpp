@@ -6,7 +6,21 @@
 
 namespace wi::lua
 {
+	namespace
+	{
+		bool RequirePhysicsFeature(lua_State* L, wi::physics::Feature feature)
+		{
+			if (const char* reason = wi::physics::GetUnsupportedReason(feature))
+			{
+				wi::lua::SError(L, reason);
+				return false;
+			}
+			return true;
+		}
+	}
+
 	Luna<Physics_BindLua>::FunctionType Physics_BindLua::methods[] = {
+		lunamethod(Physics_BindLua, GetBackendName),
 		lunamethod(Physics_BindLua, SetEnabled),
 		lunamethod(Physics_BindLua, IsEnabled),
 		lunamethod(Physics_BindLua, SetSimulationEnabled),
@@ -57,6 +71,12 @@ namespace wi::lua
 		{ NULL, NULL }
 	};
 
+
+	int Physics_BindLua::GetBackendName(lua_State* L)
+	{
+		wi::lua::SSetString(L, wi::physics::GetBackendName());
+		return 1;
+	}
 
 	int Physics_BindLua::SetEnabled(lua_State* L)
 	{
@@ -346,6 +366,8 @@ namespace wi::lua
 					return 0;
 				}
 				wi::scene::HumanoidComponent::HumanoidBone bone = (wi::scene::HumanoidComponent::HumanoidBone)wi::lua::SGetInt(L, 2);
+				if (!RequirePhysicsFeature(L, wi::physics::Feature::Ragdolls))
+					return 0;
 				Vector_BindLua* vec = Luna<Vector_BindLua>::lightcheck(L, 3);
 				if (vec == nullptr)
 				{
@@ -390,6 +412,8 @@ namespace wi::lua
 					return 0;
 				}
 				wi::scene::HumanoidComponent::HumanoidBone bone = (wi::scene::HumanoidComponent::HumanoidBone)wi::lua::SGetInt(L, 2);
+				if (!RequirePhysicsFeature(L, wi::physics::Feature::Ragdolls))
+					return 0;
 				Vector_BindLua* vec = Luna<Vector_BindLua>::lightcheck(L, 3);
 				if (vec == nullptr)
 				{
@@ -482,6 +506,8 @@ namespace wi::lua
 					wi::lua::SError(L, "SetActivationState(RigidBodyPhysicsComponent | SoftBodyPhysicsComponent component, int state) first argument is not a RigidBodyPhysicsComponent or SoftBodyPhysicsComponent!");
 					return 0;
 				}
+				if (!RequirePhysicsFeature(L, wi::physics::Feature::SoftBodies))
+					return 0;
 				wi::physics::SetActivationState(
 					*soft->component,
 					(wi::physics::ActivationState)wi::lua::SGetInt(L, 2)
@@ -607,6 +633,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::GetCharacterGroundPosition(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -626,6 +654,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::GetCharacterGroundNormal(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -645,6 +675,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::GetCharacterGroundVelocity(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -664,6 +696,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::IsCharacterGroundSupported(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -683,6 +717,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::GetCharacterGroundState(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -702,6 +738,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::ChangeCharacterShape(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -730,6 +768,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::MoveCharacter(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 1)
 		{
@@ -791,6 +831,8 @@ namespace wi::lua
 			scene::HumanoidComponent_BindLua* humanoidcomponent = Luna<scene::HumanoidComponent_BindLua>::lightcheck(L, 1);
 			if (humanoidcomponent != nullptr)
 			{
+				if (!RequirePhysicsFeature(L, wi::physics::Feature::Ragdolls))
+					return 0;
 				bool value = wi::lua::SGetBool(L, 2);
 				wi::physics::SetGhostMode(*humanoidcomponent->component, value);
 				return 0;
@@ -802,6 +844,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::SetRagdollGhostMode(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Ragdolls))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 1)
 		{
@@ -823,6 +867,8 @@ namespace wi::lua
 
 	int Physics_BindLua::SetCharacterCollisionTolerance(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -835,6 +881,8 @@ namespace wi::lua
 
 	int Physics_BindLua::GetCharacterCollisionTolerance(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Characters))
+			return 0;
 		wi::lua::SSetFloat(L, wi::physics::GetCharacterCollisionTolerance());
 		return 1;
 	}
@@ -857,7 +905,8 @@ namespace wi::lua
 				return 0;
 			}
 
-			wi::physics::RayIntersectionResult result = wi::physics::Intersects(*scene->scene, ray->ray);
+			const wi::ecs::Entity ignore_entity = argc > 2 ? wi::lua::SGetLongLong(L, 3) : wi::ecs::INVALID_ENTITY;
+			wi::physics::RayIntersectionResult result = wi::physics::Intersects(*scene->scene, ray->ray, ignore_entity);
 			wi::lua::SSetLongLong(L, result.entity);
 			Luna<Vector_BindLua>::push(L, result.position);
 			Luna<Vector_BindLua>::push(L, result.normal);
@@ -915,6 +964,8 @@ namespace wi::lua
 
 	int Physics_BindLua::DriveVehicle(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Vehicles))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{
@@ -963,6 +1014,8 @@ namespace wi::lua
 	}
 	int Physics_BindLua::GetVehicleForwardVelocity(lua_State* L)
 	{
+		if (!RequirePhysicsFeature(L, wi::physics::Feature::Vehicles))
+			return 0;
 		int argc = wi::lua::SGetArgCount(L);
 		if (argc > 0)
 		{

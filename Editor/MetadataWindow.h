@@ -11,6 +11,7 @@ public:
 	void SetEntity(wi::ecs::Entity entity);
 
 	wi::gui::ComboBox presetCombo;
+	wi::gui::CheckBox hideIconCheckBox;
 	wi::gui::ComboBox addCombo;
 
 	struct Entry
@@ -27,4 +28,3 @@ public:
 
 	void ResizeLayout() override;
 };
-

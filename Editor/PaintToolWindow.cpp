@@ -25,8 +25,11 @@ void PaintToolWindow::Create(EditorComponent* _editor)
 	modeComboBox.AddItem(ICON_TERRAIN " Terrain material", MODE_TERRAIN_MATERIAL);
 	modeComboBox.AddItem(ICON_MESH " Sculpting - Add", MODE_SCULPTING_ADD);
 	modeComboBox.AddItem(ICON_MESH " Sculpting - Subtract", MODE_SCULPTING_SUBTRACT);
-	modeComboBox.AddItem(ICON_SOFTBODY " Softbody - Pinning", MODE_SOFTBODY_PINNING);
-	modeComboBox.AddItem(ICON_SOFTBODY " Softbody - Physics", MODE_SOFTBODY_PHYSICS);
+	if (wi::physics::GetUnsupportedReason(wi::physics::Feature::SoftBodies) == nullptr)
+	{
+		modeComboBox.AddItem(ICON_SOFTBODY " Softbody - Pinning", MODE_SOFTBODY_PINNING);
+		modeComboBox.AddItem(ICON_SOFTBODY " Softbody - Physics", MODE_SOFTBODY_PHYSICS);
+	}
 	modeComboBox.AddItem(ICON_HAIR " Hairparticle - Add Triangle", MODE_HAIRPARTICLE_ADD_TRIANGLE);
 	modeComboBox.AddItem(ICON_HAIR " Hairparticle - Remove Triangle", MODE_HAIRPARTICLE_REMOVE_TRIANGLE);
 	modeComboBox.AddItem(ICON_HAIR " Hairparticle - Length (Alpha)", MODE_HAIRPARTICLE_LENGTH);

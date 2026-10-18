@@ -6461,6 +6461,12 @@ Luna<RigidBodyPhysicsComponent_BindLua>::FunctionType RigidBodyPhysicsComponent_
 	lunamethod(RigidBodyPhysicsComponent_BindLua, SetStartDeactivated),
 	lunamethod(RigidBodyPhysicsComponent_BindLua, SetCharacterPhysics),
 	lunamethod(RigidBodyPhysicsComponent_BindLua, SetLocked2D),
+	lunamethod(RigidBodyPhysicsComponent_BindLua, SetRotationLockedX),
+	lunamethod(RigidBodyPhysicsComponent_BindLua, SetRotationLockedY),
+	lunamethod(RigidBodyPhysicsComponent_BindLua, SetRotationLockedZ),
+	lunamethod(RigidBodyPhysicsComponent_BindLua, IsRotationLockedX),
+	lunamethod(RigidBodyPhysicsComponent_BindLua, IsRotationLockedY),
+	lunamethod(RigidBodyPhysicsComponent_BindLua, IsRotationLockedZ),
 	{ NULL, NULL }
 };
 Luna<RigidBodyPhysicsComponent_BindLua>::PropertyType RigidBodyPhysicsComponent_BindLua::properties[] = {
@@ -6481,6 +6487,39 @@ Luna<RigidBodyPhysicsComponent_BindLua>::PropertyType RigidBodyPhysicsComponent_
 	{ NULL, NULL }
 };
 
+int RigidBodyPhysicsComponent_BindLua::SetRotationLockedX(lua_State* L)
+{
+	if (wi::lua::SGetArgCount(L) < 1) wi::lua::SError(L, "SetRotationLockedX(bool value) not enough arguments!");
+	else component->SetRotationLockedX(wi::lua::SGetBool(L, 1));
+	return 0;
+}
+int RigidBodyPhysicsComponent_BindLua::SetRotationLockedY(lua_State* L)
+{
+	if (wi::lua::SGetArgCount(L) < 1) wi::lua::SError(L, "SetRotationLockedY(bool value) not enough arguments!");
+	else component->SetRotationLockedY(wi::lua::SGetBool(L, 1));
+	return 0;
+}
+int RigidBodyPhysicsComponent_BindLua::SetRotationLockedZ(lua_State* L)
+{
+	if (wi::lua::SGetArgCount(L) < 1) wi::lua::SError(L, "SetRotationLockedZ(bool value) not enough arguments!");
+	else component->SetRotationLockedZ(wi::lua::SGetBool(L, 1));
+	return 0;
+}
+int RigidBodyPhysicsComponent_BindLua::IsRotationLockedX(lua_State* L)
+{
+	wi::lua::SSetBool(L, component->IsRotationLockedX());
+	return 1;
+}
+int RigidBodyPhysicsComponent_BindLua::IsRotationLockedY(lua_State* L)
+{
+	wi::lua::SSetBool(L, component->IsRotationLockedY());
+	return 1;
+}
+int RigidBodyPhysicsComponent_BindLua::IsRotationLockedZ(lua_State* L)
+{
+	wi::lua::SSetBool(L, component->IsRotationLockedZ());
+	return 1;
+}
 int RigidBodyPhysicsComponent_BindLua::IsVehicle(lua_State* L)
 {
 	wi::lua::SSetBool(L, component->IsVehicle());
@@ -8111,11 +8150,29 @@ Luna<MetadataComponent_BindLua>::FunctionType MetadataComponent_BindLua::methods
 	lunamethod(MetadataComponent_BindLua, SetInt),
 	lunamethod(MetadataComponent_BindLua, SetFloat),
 	lunamethod(MetadataComponent_BindLua, SetString),
+	lunamethod(MetadataComponent_BindLua, GetHideIcon),
+	lunamethod(MetadataComponent_BindLua, SetHideIcon),
 	{ NULL, NULL }
 };
 Luna<MetadataComponent_BindLua>::PropertyType MetadataComponent_BindLua::properties[] = {
+	lunaproperty(MetadataComponent_BindLua, HideIcon),
 	{ NULL, NULL }
 };
+int MetadataComponent_BindLua::GetHideIcon(lua_State* L)
+{
+	wi::lua::SSetBool(L, component->HideIcon);
+	return 1;
+}
+int MetadataComponent_BindLua::SetHideIcon(lua_State* L)
+{
+	if (wi::lua::SGetArgCount(L) < 1)
+	{
+		wi::lua::SError(L, "SetHideIcon(bool value) not enough arguments!");
+		return 0;
+	}
+	component->HideIcon = wi::lua::SGetBool(L, 1);
+	return 0;
+}
 int MetadataComponent_BindLua::HasBool(lua_State* L)
 {
 	int argc = wi::lua::SGetArgCount(L);

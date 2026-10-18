@@ -15,9 +15,25 @@
 #include "wiBVH.h"
 #include "wiPathQuery.h"
 #include "wiAllocator.h"
+#include "wiCSG.h"
 
 namespace wi::scene
 {
+	struct CSGComponent
+	{
+		struct Surface
+		{
+			uint64_t brushID = 0, faceID = 0;
+			wi::ecs::Entity material = wi::ecs::INVALID_ENTITY;
+			wi::ecs::Entity object = wi::ecs::INVALID_ENTITY;
+		};
+		std::vector<wi::csg::Brush> brushes;
+		std::vector<Surface> surfaces;
+		uint64_t nextBrushID = 1;
+		bool dirty = true;
+		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
+	};
+
 	struct NameComponent
 	{
 		std::string name;
@@ -412,6 +428,9 @@ namespace wi::scene
 			REFRESH_PARAMETERS_REQUEST = 1 << 3,
 			CHARACTER_PHYSICS = 1 << 4,
 			LOCKED_2D = 1 << 5,
+			ROTATION_LOCK_X = 1 << 6,
+			ROTATION_LOCK_Y = 1 << 7,
+			ROTATION_LOCK_Z = 1 << 8,
 		};
 		uint32_t _flags = EMPTY;
 
@@ -544,6 +563,13 @@ namespace wi::scene
 
 		constexpr void SetLocked2D(bool value) { set_flag(_flags, LOCKED_2D, value); }
 		constexpr bool IsLocked2D() const { return _flags & LOCKED_2D; }
+		// Stored in the existing serialized flags word; older scenes default to unlocked.
+		constexpr void SetRotationLockedX(bool value) { set_flag(_flags, ROTATION_LOCK_X, value); SetRefreshParametersNeeded(true); }
+		constexpr void SetRotationLockedY(bool value) { set_flag(_flags, ROTATION_LOCK_Y, value); SetRefreshParametersNeeded(true); }
+		constexpr void SetRotationLockedZ(bool value) { set_flag(_flags, ROTATION_LOCK_Z, value); SetRefreshParametersNeeded(true); }
+		constexpr bool IsRotationLockedX() const { return _flags & ROTATION_LOCK_X; }
+		constexpr bool IsRotationLockedY() const { return _flags & ROTATION_LOCK_Y; }
+		constexpr bool IsRotationLockedZ() const { return _flags & ROTATION_LOCK_Z; }
 
 		void Serialize(wi::Archive& archive, wi::ecs::EntitySerializer& seri);
 	};
@@ -2443,6 +2469,7 @@ namespace wi::scene
 			PointOfInterest,
 		};
 		Preset preset = Preset::Custom;
+		bool HideIcon = false;
 
 		// Ordered collection of values, but also accelerated lookup by string
 		template<typename T>

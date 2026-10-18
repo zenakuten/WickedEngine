@@ -349,17 +349,6 @@ void TransformWindow::Create(EditorComponent* _editor)
 		});
 	AddWidget(&snapRotateInput);
 
-	snapTranslateInput.Create("");
-	snapTranslateInput.SetValue(1);
-	snapTranslateInput.SetDescription("Snap mode Translate: ");
-	snapTranslateInput.SetPos(XMFLOAT2(x, y += step));
-	snapTranslateInput.SetSize(XMFLOAT2(siz, hei));
-	snapTranslateInput.SetValue(editor->translator.translate_snap);
-	snapTranslateInput.OnInputAccepted([=](wi::gui::EventArgs args) {
-		editor->translator.translate_snap = args.fValue;
-		});
-	AddWidget(&snapTranslateInput);
-
 	resetTranslationButton.Create("ResetTranslation");
 	resetTranslationButton.SetText("X");
 	resetTranslationButton.SetTooltip("Reset translation");
@@ -645,5 +634,4 @@ void TransformWindow::ResizeLayout()
 
 	layout.add_right(snapScaleInput);
 	layout.add_right(snapRotateInput);
-	layout.add_right(snapTranslateInput);
 }

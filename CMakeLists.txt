@@ -21,8 +21,19 @@ include(CheckIPOSupported)
 
 set(WICKED_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+set(WICKED_PHYSICS_BACKEND "Jolt" CACHE STRING "Physics backend")
+set_property(CACHE WICKED_PHYSICS_BACKEND PROPERTY STRINGS Jolt Box3D)
+if(NOT WICKED_PHYSICS_BACKEND STREQUAL "Jolt"
+   AND NOT WICKED_PHYSICS_BACKEND STREQUAL "Box3D")
+    message(FATAL_ERROR "WICKED_PHYSICS_BACKEND must be Jolt or Box3D")
+endif()
+if(WICKED_PHYSICS_BACKEND STREQUAL "Box3D" AND CMAKE_VERSION VERSION_LESS 3.22)
+    message(FATAL_ERROR "The Box3D backend requires CMake 3.22 or newer")
+endif()
+message(STATUS "WickedEngine physics backend: ${WICKED_PHYSICS_BACKEND}")
+
 option(WICKED_DYNAMIC_LIBRARY "Build WickedEngine as a dynamic library" OFF)
-option(WICKED_PIC "Build WickedEngine as position-independent code" WICKED_DYNAMIC_LIBRARY)
+option(WICKED_PIC "Build WickedEngine as position-independent code" ${WICKED_DYNAMIC_LIBRARY})
 option(USE_LIBCXX "Link WickedEngine to llvm libc++ library - only available with the Clang compiler" OFF)
 option(WICKED_EDITOR "Build WickedEngine editor" ON)
 option(WICKED_TESTS "Build WickedEngine tests" ON)

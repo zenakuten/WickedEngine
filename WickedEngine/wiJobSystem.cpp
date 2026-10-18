@@ -66,7 +66,7 @@ namespace wi::jobsystem
 				task(args);
 			}
 
-			return ctx->counter.fetch_sub(1, std::memory_order_relaxed); // returns context counter's previous value
+			return ctx->counter.fetch_sub(1, std::memory_order_acq_rel); // publishes job writes to Wait()
 		}
 	};
 	struct JobQueue
@@ -200,9 +200,9 @@ namespace wi::jobsystem
 			if (IsShuttingDown())
 				return;
 			alive.store(false); // indicate that new jobs cannot be started from this point
-			bool wake_loop = true;
+			std::atomic_bool wake_loop{ true };
 			std::thread waker([&] {
-				while (wake_loop)
+				while (wake_loop.load(std::memory_order_relaxed))
 				{
 					for (auto& x : resources)
 					{
@@ -217,7 +217,7 @@ namespace wi::jobsystem
 					thread.join();
 				}
 			}
-			wake_loop = false;
+			wake_loop.store(false, std::memory_order_relaxed);
 			waker.join();
 			for (auto& x : resources)
 			{
@@ -526,7 +526,7 @@ namespace wi::jobsystem
 	bool IsBusy(const context& ctx)
 	{
 		// Whenever the context label is greater than zero, it means that there is still work that needs to be done
-		return ctx.counter.load(std::memory_order_relaxed) > 0;
+		return ctx.counter.load(std::memory_order_acquire) > 0;
 	}
 
 	void Wait(const context& ctx)
@@ -556,6 +556,6 @@ namespace wi::jobsystem
 
 	uint32_t GetRemainingJobCount(const context& ctx)
 	{
-		return ctx.counter.load(std::memory_order_relaxed);
+		return ctx.counter.load(std::memory_order_acquire);
 	}
 }

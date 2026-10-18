@@ -3606,7 +3606,16 @@ using namespace vulkan_internal;
 			vkDestroySemaphore(device, x, nullptr);
 		}
 
+		vkDestroyBufferView(device, nullBufferView, nullptr);
 		vmaDestroyBuffer(allocationhandler->allocator, nullBuffer, nullBufferAllocation);
+		for (VkImageView view : { nullImageView1D, nullImageView1DArray, nullImageView2D,
+			nullImageView2DArray, nullImageView3D, nullImageViewCube, nullImageViewCubeArray })
+		{
+			vkDestroyImageView(device, view, nullptr);
+		}
+		vmaDestroyImage(allocationhandler->allocator, nullImage1D, nullImageAllocation1D);
+		vmaDestroyImage(allocationhandler->allocator, nullImage2D, nullImageAllocation2D);
+		vmaDestroyImage(allocationhandler->allocator, nullImage3D, nullImageAllocation3D);
 		vkDestroySampler(device, nullSampler, nullptr);
 
 		for (VkSampler sam : immutable_samplers)

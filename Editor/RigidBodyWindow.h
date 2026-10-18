@@ -28,6 +28,9 @@ public:
 	wi::gui::CheckBox disabledeactivationCheckBox;
 	wi::gui::CheckBox kinematicCheckBox;
 	wi::gui::CheckBox locked2DCheckBox;
+	wi::gui::CheckBox rotationLockedXCheckBox;
+	wi::gui::CheckBox rotationLockedYCheckBox;
+	wi::gui::CheckBox rotationLockedZCheckBox;
 	wi::gui::Slider offsetXSlider;
 	wi::gui::Slider offsetYSlider;
 	wi::gui::Slider offsetZSlider;
@@ -77,4 +80,3 @@ public:
 
 	void ResizeLayout() override;
 };
-

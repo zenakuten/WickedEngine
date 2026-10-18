@@ -1062,6 +1062,12 @@ namespace wi::lua::scene
 		int SetStartDeactivated(lua_State* L);
 		int SetCharacterPhysics(lua_State* L);
 		int SetLocked2D(lua_State* L);
+		int SetRotationLockedX(lua_State* L);
+		int SetRotationLockedY(lua_State* L);
+		int SetRotationLockedZ(lua_State* L);
+		int IsRotationLockedX(lua_State* L);
+		int IsRotationLockedY(lua_State* L);
+		int IsRotationLockedZ(lua_State* L);
 
 		int IsVehicle(lua_State* L);
 		int IsCar(lua_State* L);
@@ -1989,6 +1995,8 @@ namespace wi::lua::scene
 		int SetInt(lua_State* L);
 		int SetFloat(lua_State* L);
 		int SetString(lua_State* L);
+		int GetHideIcon(lua_State* L);
+		int SetHideIcon(lua_State* L);
 	};
 
 	class CharacterComponent_BindLua
@@ -2071,4 +2079,3 @@ namespace wi::lua::scene
 		int GetPathQuery(lua_State* L);
 	};
 }
-

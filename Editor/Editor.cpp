@@ -84,6 +84,9 @@ enum class EditorActions
 	ROTATE_TOGGLE_ACTION,
 	SCALE_TOGGLE_ACTION,
 	LOCAL_GLOBAL_TOGGLE_ACTION,
+	GRID_SNAP_TOGGLE_ACTION,
+	GRID_SIZE_DOWN_ACTION,
+	GRID_SIZE_UP_ACTION,
 
 	// Engine actions
 	SCREENSHOT,
@@ -145,6 +148,9 @@ HotkeyInfo hotkeyActions[size_t(EditorActions::COUNT)] = {
 	{wi::input::BUTTON('2'),					/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//ROTATE_TOGGLE_ACTION,
 	{wi::input::BUTTON('3'),					/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//SCALE_TOGGLE_ACTION,
 	{wi::input::BUTTON('4'),					/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//LOCAL_GLOBAL_TOGGLE_ACTION,
+	{wi::input::BUTTON('G'),					/*press=*/ true,		/*control=*/ false,		/*shift=*/ true},	//GRID_SNAP_TOGGLE_ACTION,
+	{wi::input::BUTTON('['),					/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//GRID_SIZE_DOWN_ACTION,
+	{wi::input::BUTTON(']'),					/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//GRID_SIZE_UP_ACTION,
 	{wi::input::BUTTON::KEYBOARD_BUTTON_F3,		/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//SCREENSHOT,
 	{wi::input::BUTTON::KEYBOARD_BUTTON_F3,		/*press=*/ true,		/*control=*/ false,		/*shift=*/ true},	//SCREENSHOT_NOGUI,
 	{wi::input::BUTTON::KEYBOARD_BUTTON_F4,		/*press=*/ true,		/*control=*/ false,		/*shift=*/ false},	//SCREENSHOT_ALPHA,
@@ -224,6 +230,9 @@ void HotkeyRemap(Editor* main)
 		{"ROTATE_TOGGLE_ACTION", EditorActions::ROTATE_TOGGLE_ACTION},
 		{"SCALE_TOGGLE_ACTION", EditorActions::SCALE_TOGGLE_ACTION},
 		{"LOCAL_GLOBAL_TOGGLE_ACTION", EditorActions::LOCAL_GLOBAL_TOGGLE_ACTION},
+		{"GRID_SNAP_TOGGLE_ACTION", EditorActions::GRID_SNAP_TOGGLE_ACTION},
+		{"GRID_SIZE_DOWN_ACTION", EditorActions::GRID_SIZE_DOWN_ACTION},
+		{"GRID_SIZE_UP_ACTION", EditorActions::GRID_SIZE_UP_ACTION},
 		{"MAKE_NEW_SCREENSHOT", EditorActions::SCREENSHOT},
 		{"MAKE_NEW_SCREENSHOT_NOGUI", EditorActions::SCREENSHOT_NOGUI},
 		{"MAKE_NEW_SCREENSHOT_ALPHA", EditorActions::SCREENSHOT_ALPHA},
@@ -586,6 +595,7 @@ void EditorComponent::Load()
 
 	generalButton.Create(ICON_GENERALOPTIONS);
 	generalButton.OnClick([this](wi::gui::EventArgs args) {
+		csgWnd.SetVisible(false);
 		generalWnd.SetVisible(!generalWnd.IsVisible());
 		graphicsWnd.SetVisible(false);
 		cameraWnd.SetVisible(false);
@@ -599,6 +609,7 @@ void EditorComponent::Load()
 
 	graphicsButton.Create(ICON_GRAPHICSOPTIONS);
 	graphicsButton.OnClick([this](wi::gui::EventArgs args) {
+		csgWnd.SetVisible(false);
 		generalWnd.SetVisible(false);
 		graphicsWnd.SetVisible(!graphicsWnd.IsVisible());
 		cameraWnd.SetVisible(false);
@@ -612,6 +623,7 @@ void EditorComponent::Load()
 
 	cameraButton.Create(ICON_CAMERAOPTIONS);
 	cameraButton.OnClick([this](wi::gui::EventArgs args) {
+		csgWnd.SetVisible(false);
 		generalWnd.SetVisible(false);
 		graphicsWnd.SetVisible(false);
 		cameraWnd.SetVisible(!cameraWnd.IsVisible());
@@ -625,6 +637,7 @@ void EditorComponent::Load()
 
 	materialsButton.Create(ICON_MATERIALBROWSER);
 	materialsButton.OnClick([this](wi::gui::EventArgs args) {
+		csgWnd.SetVisible(false);
 		generalWnd.SetVisible(false);
 		graphicsWnd.SetVisible(false);
 		cameraWnd.SetVisible(false);
@@ -642,6 +655,7 @@ void EditorComponent::Load()
 
 	paintToolButton.Create(ICON_PAINTTOOL);
 	paintToolButton.OnClick([this](wi::gui::EventArgs args) {
+		csgWnd.SetVisible(false);
 		generalWnd.SetVisible(false);
 		graphicsWnd.SetVisible(false);
 		cameraWnd.SetVisible(false);
@@ -667,6 +681,20 @@ void EditorComponent::Load()
 
 	generalWnd.Create(this);
 	GetGUI().AddWidget(&generalWnd);
+
+	csgWnd.Create(this);
+	GetGUI().AddWidget(&csgWnd);
+	csgButton.Create("CSG");
+	csgButton.SetTooltip("CSG options");
+	csgButton.OnClick([this](wi::gui::EventArgs) {
+		csgWnd.SetVisible(!csgWnd.IsVisible());
+		generalWnd.SetVisible(false);
+		graphicsWnd.SetVisible(false);
+		cameraWnd.SetVisible(false);
+		materialPickerWnd.SetVisible(false);
+		paintToolWnd.SetVisible(false);
+	});
+	GetGUI().AddWidget(&csgButton);
 
 	newSceneButton.Create("+");
 	newSceneButton.SetLocalizationEnabled(wi::gui::LocalizationEnabled::Tooltip);
@@ -1048,6 +1076,42 @@ void EditorComponent::Load()
 	});
 	GetGUI().AddWidget(&localGlobalButton);
 
+	{
+		auto& options = main->config.GetSection("options");
+		if (options.Has("grid_snap"))
+			translator.grid_snap = options.GetBool("grid_snap");
+		gridSnapButton.Create(ICON_GRID_SNAP);
+		gridSnapButton.SetShadowRadius(2);
+		gridSnapButton.SetTooltip("Toggle snap to grid (Shift + G)\nMoves objects, CSG brushes, vertices and faces to grid positions.\nHold Ctrl while dragging to temporarily invert snapping.");
+		gridSnapButton.SetLocalizationEnabled(wi::gui::LocalizationEnabled::Tooltip);
+		gridSnapButton.OnClick([this](wi::gui::EventArgs args) {
+			ToggleGridSnap();
+		});
+		GetGUI().AddWidget(&gridSnapButton);
+
+		gridSizeCombo.Create("");
+		gridSizeCombo.SetShadowRadius(2);
+		gridSizeCombo.SetTooltip("Grid size in world units, used by snapping and the orthographic grid.\nHotkeys: [ smaller, ] larger");
+		gridSizeCombo.SetLocalizationEnabled(wi::gui::LocalizationEnabled::Tooltip);
+		for (int i = 0; i < 11; ++i)
+		{
+			const float size = std::ldexp(1.0f, i - 4); // 1/16 .. 64
+			std::string text = std::to_string(size);
+			text.erase(text.find_last_not_of('0') + 1);
+			if (text.back() == '.')
+				text.pop_back();
+			gridSizeCombo.AddItem(text);
+		}
+		gridSizeCombo.OnSelect([this](wi::gui::EventArgs args) {
+			SetGridSize(args.iValue);
+		});
+		float size = options.Has("grid_size") ? options.GetFloat("grid_size") : translator.translate_snap;
+		int index = std::clamp(int(std::round(std::log2(std::max(size, 1.0f / 16)))) + 4, 0, 10);
+		gridSizeCombo.SetSelectedWithoutCallback(index);
+		translator.translate_snap = std::ldexp(1.0f, index - 4);
+		GetGUI().AddWidget(&gridSizeCombo);
+	}
+
 	physicsButton.Create(ICON_RIGIDBODY);
 	physicsButton.SetShadowRadius(2);
 	physicsButton.SetTooltip("Toggle Physics Simulation On/Off\n\tOr: press while holding left Ctrl to reset physics bodies");
@@ -1368,7 +1432,9 @@ void EditorComponent::Load()
 		ss += "Select top-level parent: Alt + Left mouse button\n";
 		ss += "Interact with physics/water/grass: Middle mouse button\n";
 		ss += "Faster camera: Left Shift button or controller R2/RT\n";
-		ss += "Snap to grid transform: Ctrl (hold while transforming)\n";
+		ss += "Snap to grid: toolbar grid button or " + GetInputString(EditorActions::GRID_SNAP_TOGGLE_ACTION) + "; hold Ctrl while dragging to invert it\n";
+		ss += "Grid size smaller/larger: " + GetInputString(EditorActions::GRID_SIZE_DOWN_ACTION) + " / " + GetInputString(EditorActions::GRID_SIZE_UP_ACTION) + "\n";
+		ss += "Snap rotation/scale: Ctrl (hold while transforming)\n";
 		ss += "Snap to surface transform: Shift (hold while transforming)\n";
 		ss += "Camera up: " + GetInputString(EditorActions::MOVE_CAMERA_UP) + "\n";
 		ss += "Camera down: " + GetInputString(EditorActions::MOVE_CAMERA_DOWN) + "\n";
@@ -1513,6 +1579,31 @@ void EditorComponent::Load()
 		Set2DMode(!is_2D_mode);
 	});
 	GetGUI().AddWidget(&is2DModeButton);
+
+	fourViews = main->config.GetBool("four_views");
+	fourViewsButton.Create("Four views");
+	fourViewsButton.SetTooltip("Toggle Perspective / Top / Front / Side views.");
+	fourViewsButton.OnClick([this](wi::gui::EventArgs args) {
+		if (translator.IsDragging())
+			return;
+		fourViews = !QuadViewsEnabled();
+		if (fourViews && is_2D_mode)
+			Set2DMode(false);
+		activeView = 0;
+		maximizedView = -1;
+		main->config.Set("four_views", fourViews);
+		ResizeViewport3D();
+	});
+	GetGUI().AddWidget(&fourViewsButton);
+	maximizeViewButton.Create("Max view");
+	maximizeViewButton.SetTooltip("Maximize or restore the active scene view.");
+	maximizeViewButton.OnClick([this](wi::gui::EventArgs args) {
+		if (!QuadViewsEnabled() || translator.IsDragging())
+			return;
+		maximizedView = maximizedView < 0 ? activeView : -1;
+		ResizeViewport3D();
+	});
+	GetGUI().AddWidget(&maximizeViewButton);
 
 	componentsWnd.Create(this);
 	GetGUI().AddWidget(&componentsWnd);
@@ -1737,7 +1828,14 @@ void EditorComponent::Update(float dt)
 
 	Scene& scene = GetCurrentScene();
 	EditorScene& editorscene = GetCurrentEditorScene();
-	CameraComponent& camera = editorscene.camera;
+	ResizeViewport3D();
+	UpdateSceneViewports();
+	CameraComponent& camera = GetInteractionCamera();
+	const auto& inputCanvas = GetInteractionCanvas();
+	const auto& inputViewport = viewportLayout.Panes[activeView];
+	currentMouse = wi::input::GetPointer();
+	currentMouse.x -= PhysicalToLogical(inputViewport.top_left_x);
+	currentMouse.y -= PhysicalToLogical(inputViewport.top_left_y);
 
 	translator.scene = &scene;
 	translator.is2D = is_2D_mode;
@@ -1752,6 +1850,8 @@ void EditorComponent::Update(float dt)
 	paintToolWnd.UpdateData(dt);
 	graphicsWnd.UpdateData();
 	componentsWnd.UpdateData(dt);
+	csgWnd.UpdateData();
+	csgWnd.UpdateInput();
 
 	// Pulsating selection color update:
 	outlineTimer += dt;
@@ -1788,9 +1888,14 @@ void EditorComponent::Update(float dt)
 		}
 	}
 
+	bool derivedCSG = false;
+	for (size_t i = 0; i < scene.csgs.GetCount(); ++i)
+		for (const auto& surface : scene.csgs[i].surfaces)
+			derivedCSG |= IsSelected(surface.object);
 	if (!wi::backlog::isActive() && paintToolWnd.GetMode() == PaintToolWindow::MODE::MODE_DISABLED)
 	{
-		translator.Update(camera, currentMouse, *renderPath);
+		const bool inputEnabled = !derivedCSG && !csgWnd.Editing() && !GetGUI().HasFocus() && (viewportMouseCaptured || GetSceneViewportAtPointer() == activeView);
+		translator.Update(camera, currentMouse, inputCanvas, inputEnabled);
 	}
 
 	// Vehicle driving controls:
@@ -1978,7 +2083,7 @@ void EditorComponent::Update(float dt)
 	}
 
 	// Camera control:
-	if (!drive_mode && !wi::backlog::isActive() && !GetGUI().HasFocus())
+	if (!drive_mode && !wi::backlog::isActive() && (!GetGUI().HasFocus() || viewportMouseCaptured))
 	{
 		deleting = CheckInput(EditorActions::DELETE_ACTION);
 		currentMouse = wi::input::GetPointer();
@@ -1989,27 +2094,29 @@ void EditorComponent::Update(float dt)
 
 		// This check whether pressing left mouse can modify selection:
 		const bool leftmouse_select =
+			!csgWnd.Editing() &&
 			!translator.IsInteracting() && // translator shouldn't be active
 			paintToolWnd.GetMode() == PaintToolWindow::MODE::MODE_DISABLED && // paint tool shouldn't be active
 			(!componentsWnd.decalWnd.IsEnabled() || !componentsWnd.decalWnd.placementCheckBox.GetCheck()) && // decal placement shouldn't be active
 			!(wi::input::Down(wi::input::KEYBOARD_BUTTON_LCONTROL) && wi::input::Down(wi::input::KEYBOARD_BUTTON_LSHIFT)) && // instance placement shouldn't be active
 			!wi::input::Down(wi::input::KEYBOARD_BUTTON_ALT) &&
-			viewport3D_hitbox.intersects(XMFLOAT2(currentMouse.x, currentMouse.y)) &&
+			GetSceneViewportAtPointer() == activeView &&
 			wi::input::Press(wi::input::MOUSE_BUTTON_LEFT);
 
 		// Alt+Click to select parent entity:
 		const bool altmouse_select_parent =
+			!csgWnd.Editing() &&
 			!translator.IsInteracting() &&
 			paintToolWnd.GetMode() == PaintToolWindow::MODE::MODE_DISABLED &&
 			(!componentsWnd.decalWnd.IsEnabled() || !componentsWnd.decalWnd.placementCheckBox.GetCheck()) &&
 			wi::input::Down(wi::input::KEYBOARD_BUTTON_ALT) &&
-			viewport3D_hitbox.intersects(XMFLOAT2(currentMouse.x, currentMouse.y)) &&
+			GetSceneViewportAtPointer() == activeView &&
 			wi::input::Press(wi::input::MOUSE_BUTTON_LEFT);
 
 		// After originalMouse is saved, currentMouse is remapped inside 3D viewport:
 		//	originalMouse shouldn't be remapped, because that will be used to reset mouse position
-		currentMouse.x -= renderPath->PhysicalToLogical((uint32_t)viewport3D.top_left_x);
-		currentMouse.y -= renderPath->PhysicalToLogical((uint32_t)viewport3D.top_left_y);
+		currentMouse.x -= PhysicalToLogical(inputViewport.top_left_x);
+		currentMouse.y -= PhysicalToLogical(inputViewport.top_left_y);
 
 		static constexpr float tweak60 = 0.1f / 60.0f;
 		float xDif = 0, yDif = 0;
@@ -2017,7 +2124,7 @@ void EditorComponent::Update(float dt)
 		const wi::input::Pinch pinch = wi::input::GetTouchPinch();
 		const XMFLOAT2& pan = wi::input::GetTouchPan();
 
-		if (wi::input::Down(wi::input::MOUSE_BUTTON_RIGHT))
+		if (activeView == 0 && viewportMouseCaptured && wi::input::Down(wi::input::MOUSE_BUTTON_RIGHT))
 		{
 			camControlStart = false;
 			xDif = mouse.delta_position.x;
@@ -2072,7 +2179,7 @@ void EditorComponent::Update(float dt)
 		yDif *= cameraWnd.rotationspeedSlider.GetValue();
 
 
-		if (CheckInput(EditorActions::ORTHO_CAMERA))
+		if (activeView == 0 && CheckInput(EditorActions::ORTHO_CAMERA))
 		{
 			camera.SetOrtho(!camera.IsOrtho());
 			camera.ortho_vertical_size = camera.ComputeOrthoVerticalSizeFromPerspective(wi::math::Length(camera.Eye)); // camera distance from origin
@@ -2102,7 +2209,7 @@ void EditorComponent::Update(float dt)
 			ReloadTerrainProps();
 		}
 
-		if (is_2D_mode)
+		if (activeView == 0 && is_2D_mode)
 		{
 			// 2D camera
 			const float clampedDT = std::min(dt, 0.1f); // if dt > 100 millisec, don't allow the camera to jump too far...
@@ -2168,7 +2275,7 @@ void EditorComponent::Update(float dt)
 
 			camera.ortho_vertical_size = std::max(0.01f, camera.ortho_vertical_size);
 		}
-		else if (cameraWnd.fpsCheckBox.GetCheck())
+		else if (activeView == 0 && cameraWnd.fpsCheckBox.GetCheck())
 		{
 			// FPS Camera
 			const float clampedDT = std::min(dt, 0.1f); // if dt > 100 millisec, don't allow the camera to jump too far...
@@ -2246,7 +2353,7 @@ void EditorComponent::Update(float dt)
 				main->config.GetSection("camera").Set("move_speed", cameraWnd.movespeedSlider.GetValue());
 			}
 		}
-		else
+		else if (activeView == 0)
 		{
 			// Orbital Camera
 
@@ -2274,7 +2381,8 @@ void EditorComponent::Update(float dt)
 			editorscene.camera_transform.UpdateTransform_Parented(editorscene.camera_target);
 		}
 
-		if (!translator.selected.empty() && CheckInput(EditorActions::FOCUS_ON_SELECTION))
+		if ((!translator.selected.empty() || (csgWnd.Editing() && editorscene.csg.brush != 0)) &&
+			CheckInput(EditorActions::FOCUS_ON_SELECTION))
 		{
 			FocusCameraOnSelected();
 		}
@@ -2282,7 +2390,7 @@ void EditorComponent::Update(float dt)
 		inspector_mode = CheckInput(EditorActions::INSPECTOR_MODE);
 
 		// Begin picking:
-		pickRay = wi::renderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y, *renderPath, camera);
+		pickRay = wi::renderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y, inputCanvas, camera);
 		{
 			hovered = wi::scene::PickResult();
 
@@ -2312,7 +2420,7 @@ void EditorComponent::Update(float dt)
 					}
 					else
 					{
-						if (light.GetType() == LightComponent::DIRECTIONAL || light.GetType() == LightComponent::SPOT)
+						if (activeView == 0 && (light.GetType() == LightComponent::DIRECTIONAL || light.GetType() == LightComponent::SPOT))
 						{
 							// Light direction visualizer picking:
 							const float dist = wi::math::Distance(light.position, camera.Eye);
@@ -2593,6 +2701,8 @@ void EditorComponent::Update(float dt)
 			{
 				for (size_t i = 0; i < scene.metadatas.GetCount(); ++i)
 				{
+					if (scene.metadatas[i].HideIcon)
+						continue;
 					Entity entity = scene.metadatas.GetEntity(i);
 					if (!scene.transforms.Contains(entity))
 						continue;
@@ -3091,6 +3201,18 @@ void EditorComponent::Update(float dt)
 			translator.isLocalSpace = !translator.isLocalSpace;
 			UpdateLocalGlobalButton();
 		}
+		else if (CheckInput(EditorActions::GRID_SNAP_TOGGLE_ACTION))
+		{
+			ToggleGridSnap();
+		}
+		else if (CheckInput(EditorActions::GRID_SIZE_DOWN_ACTION))
+		{
+			SetGridSize(gridSizeCombo.GetSelected() - 1);
+		}
+		else if (CheckInput(EditorActions::GRID_SIZE_UP_ACTION))
+		{
+			SetGridSize(gridSizeCombo.GetSelected() + 1);
+		}
 	}
 
 	// Delete
@@ -3173,6 +3295,8 @@ void EditorComponent::Update(float dt)
 		componentsWnd.springWnd.SetEntity(picked.entity);
 		componentsWnd.ikWnd.SetEntity(picked.entity);
 		componentsWnd.transformWnd.SetEntity(picked.entity);
+		if (derivedCSG)
+			componentsWnd.transformWnd.SetEnabled(false);
 		componentsWnd.layerWnd.SetEntity(picked.entity);
 		componentsWnd.nameWnd.SetEntity(picked.entity);
 		componentsWnd.weatherWnd.SetEntity(picked.entity);
@@ -3354,8 +3478,8 @@ void EditorComponent::Update(float dt)
 
 	if (!drive_mode)
 	{
-		camera.TransformCamera(editorscene.camera_transform);
-		camera.UpdateCamera();
+		editorscene.camera.TransformCamera(editorscene.camera_transform);
+		editorscene.camera.UpdateCamera();
 	}
 
 	if (pathtracer != nullptr)
@@ -3388,6 +3512,8 @@ void EditorComponent::Update(float dt)
 	ResizeViewport3D();
 	renderPath->colorspace = colorspace;
 	renderPath->Update(dt);
+	if (QuadViewsEnabled())
+		orthoRenderer.Update(scene);
 
 	if (navtest_enabled)
 	{
@@ -3890,6 +4016,8 @@ void EditorComponent::Render() const
 
 			for (size_t i = 0; i < scene.metadatas.GetCount(); ++i)
 			{
+				if (scene.metadatas[i].HideIcon)
+					continue;
 				Entity entity = scene.metadatas.GetEntity(i);
 				if (!scene.transforms.Contains(entity))
 					continue;
@@ -4580,6 +4708,8 @@ void EditorComponent::Render() const
 
 				for (size_t i = 0; i < scene.metadatas.GetCount(); ++i)
 				{
+					if (scene.metadatas[i].HideIcon)
+						continue;
 					Entity entity = scene.metadatas.GetEntity(i);
 					if (!scene.transforms.Contains(entity))
 						continue;
@@ -4907,13 +5037,20 @@ void EditorComponent::Render() const
 	}
 
 	RenderPath2D::Render();
+	if (QuadViewsEnabled())
+		RenderOrthographicViews();
 
 	wi::renderer::SetDebugDrawEnabled(true);
 }
 void EditorComponent::Compose(CommandList cmd) const
 {
-	GetDevice()->BindViewports(1, &viewport3D, cmd);
-	renderPath->Compose(cmd);
+	if (viewportLayout.Panes[0].width > 0)
+	{
+		GetDevice()->BindViewports(1, &viewport3D, cmd);
+		renderPath->Compose(cmd);
+	}
+	if (QuadViewsEnabled())
+		ComposeSceneViewports(cmd);
 
 	Viewport vp;
 	vp.top_left_x = 0;
@@ -4922,6 +5059,7 @@ void EditorComponent::Compose(CommandList cmd) const
 	vp.height = (float)GetPhysicalHeight();
 	GetDevice()->BindViewports(1, &vp, cmd);
 
+	csgWnd.DrawOverlay(cmd);
 	RenderPath2D::Compose(cmd);
 
 	if (save_text_alpha > 0)
@@ -4978,10 +5116,29 @@ void EditorComponent::ResizeViewport3D()
 		{
 			width -= LogicalToPhysical(paintToolWnd.scale_local.x);
 		}
+		if (csgWnd.IsVisible())
+		{
+			width -= LogicalToPhysical(csgWnd.scale_local.x);
+		}
 		height -= LogicalToPhysical(topmenuWnd.scale_local.y);
 	}
 	width = std::max(64, width);
 	height = std::max(64, height);
+	Viewport area;
+	area.width = float(width);
+	area.height = float(height);
+	if (GetGUI().IsVisible())
+	{
+		for (auto* panel : std::array<wi::gui::Window*, 6>{&generalWnd, &graphicsWnd, &cameraWnd, &materialPickerWnd, &paintToolWnd, &csgWnd})
+		{
+			if (panel->IsVisible())
+				area.top_left_x = float(LogicalToPhysical(panel->scale_local.x));
+		}
+		area.top_left_y = float(LogicalToPhysical(topmenuWnd.scale_local.y));
+	}
+	ResizeSceneViewports(area);
+	width = std::max(1, int(viewport3D.width));
+	height = std::max(1, int(viewport3D.height));
 	if (renderPath->width != width || renderPath->height != height || rt_selectionOutline_MSAA.desc.sample_count != renderPath->getMSAASampleCount())
 	{
 		renderPath->width = width;
@@ -4990,32 +5147,6 @@ void EditorComponent::ResizeViewport3D()
 		renderPath->scaling = scaling;
 		renderPath->ResizeBuffers();
 
-		viewport3D.top_left_x = 0;
-		viewport3D.top_left_y = 0;
-		if (GetGUI().IsVisible())
-		{
-			if (generalWnd.IsVisible())
-			{
-				viewport3D.top_left_x = (float)LogicalToPhysical(generalWnd.scale_local.x);
-			}
-			if (graphicsWnd.IsVisible())
-			{
-				viewport3D.top_left_x = (float)LogicalToPhysical(graphicsWnd.scale_local.x);
-			}
-			if (cameraWnd.IsVisible())
-			{
-				viewport3D.top_left_x = (float)LogicalToPhysical(cameraWnd.scale_local.x);
-			}
-			if (materialPickerWnd.IsVisible())
-			{
-				viewport3D.top_left_x = (float)LogicalToPhysical(materialPickerWnd.scale_local.x);
-			}
-			if (paintToolWnd.IsVisible())
-			{
-				viewport3D.top_left_x = (float)LogicalToPhysical(paintToolWnd.scale_local.x);
-			}
-			viewport3D.top_left_y = (float)LogicalToPhysical(topmenuWnd.scale_local.y);
-		}
 		viewport3D.width = (float)renderPath->width;
 		viewport3D.height = (float)renderPath->height;
 
@@ -5492,6 +5623,9 @@ void EditorComponent::ConsumeHistoryOperation(bool undo)
 			break;
 		case HISTORYOP_PAINTTOOL:
 			paintToolWnd.ConsumeHistoryOperation(archive, undo);
+			break;
+		case HISTORYOP_CSG:
+			csgWnd.RestoreHistory(archive, undo);
 			break;
 		case HISTORYOP_NONE:
 		default:
@@ -6262,6 +6396,22 @@ void EditorComponent::CheckBonePickingEnabled()
 	}
 }
 
+void EditorComponent::ToggleGridSnap()
+{
+	translator.grid_snap = !translator.grid_snap;
+	main->config.GetSection("options").Set("grid_snap", translator.grid_snap);
+	main->config.Commit();
+}
+
+void EditorComponent::SetGridSize(int index)
+{
+	index = std::clamp(index, 0, int(gridSizeCombo.GetItemCount()) - 1);
+	gridSizeCombo.SetSelectedWithoutCallback(index);
+	translator.translate_snap = std::ldexp(1.0f, index - 4);
+	main->config.GetSection("options").Set("grid_size", translator.translate_snap);
+	main->config.Commit();
+}
+
 void EditorComponent::UpdateLocalGlobalButton()
 {
 	if (translator.isLocalSpace)
@@ -6487,7 +6637,15 @@ void EditorComponent::UpdateDynamicWidgets()
 	localGlobalButton.SetSize(XMFLOAT2(hei, hei));
 	localGlobalButton.SetPos(XMFLOAT2(ofs, y));
 	localGlobalButton.Update(*this, 0);
-	y += localGlobalButton.GetSize().y + padding;
+	y += localGlobalButton.GetSize().y + localGlobalButton.GetShadowRadius();
+
+	gridSnapButton.SetSize(XMFLOAT2(hei, hei));
+	gridSnapButton.SetPos(XMFLOAT2(ofs, y));
+	gridSnapButton.Update(*this, 0);
+	gridSizeCombo.SetSize(XMFLOAT2(hei * 2, hei));
+	gridSizeCombo.SetPos(XMFLOAT2(ofs - gridSizeCombo.GetSize().x - hei - padding, y));
+	gridSizeCombo.Update(*this, 0);
+	y += gridSnapButton.GetSize().y + padding;
 
 	physicsButton.SetSize(XMFLOAT2(hei, hei));
 	physicsButton.SetPos(XMFLOAT2(ofs, y));
@@ -6539,6 +6697,8 @@ void EditorComponent::UpdateDynamicWidgets()
 		rotateButton.sprites[wi::gui::IDLE].params.color = color_off;
 		scaleButton.sprites[wi::gui::IDLE].params.color = color_on;
 	}
+
+	gridSnapButton.sprites[wi::gui::IDLE].params.color = translator.grid_snap ? color_on : color_off;
 
 	if (dummy_enabled)
 	{
@@ -6654,6 +6814,13 @@ void EditorComponent::UpdateDynamicWidgets()
 	}
 	y = padding + topmenuWnd.GetSize().y + topmenuWnd.GetShadowRadius();
 	hei = 40;
+	if (csgWnd.IsVisible())
+	{
+		csgWnd.SetPos(XMFLOAT2(0, topmenuWnd.scale_local.y + topmenuWnd.GetShadowRadius()));
+		csgWnd.SetSize(XMFLOAT2(csgWnd.scale_local.x, screenH - topmenuWnd.scale_local.y - topmenuWnd.GetShadowRadius()));
+		ofs += csgWnd.scale_local.x + csgWnd.GetShadowRadius();
+	}
+	csgButton.sprites[wi::gui::IDLE].params.color = csgWnd.IsVisible() ? color_on : color_off;
 	
 	ofs = std::max(ofs, GetSafeInsetLeftLogical());
 
@@ -6682,6 +6849,10 @@ void EditorComponent::UpdateDynamicWidgets()
 	paintToolButton.Update(*this, 0);
 	y += hei + padding;
 
+	csgButton.SetPos(XMFLOAT2(ofs, y));
+	csgButton.SetSize(XMFLOAT2(hei, hei));
+	csgButton.Update(*this, 0);
+	y += hei + padding;
 
 	guiScalingCombo.SetSize(XMFLOAT2(50, 18));
 	guiScalingCombo.SetPos(XMFLOAT2(ofs, screenH - guiScalingCombo.GetSize().y - padding));
@@ -6697,10 +6868,24 @@ void EditorComponent::UpdateDynamicWidgets()
 	is2DModeButton.SetSize(XMFLOAT2(50, 18));
 	is2DModeButton.SetPos(XMFLOAT2(guiScalingCombo.GetPos().x + guiScalingCombo.GetSize().x + 10, guiScalingCombo.GetPos().y));
 	is2DModeButton.Update(*this, 0);
+	fourViewsButton.SetText(QuadViewsEnabled() ? "Single view" : "Four views");
+	fourViewsButton.SetSize(XMFLOAT2(90, 18));
+	fourViewsButton.SetPos(XMFLOAT2(is2DModeButton.GetPos().x + 60, guiScalingCombo.GetPos().y));
+	fourViewsButton.Update(*this, 0);
+	maximizeViewButton.SetSize(XMFLOAT2(85, 18));
+	maximizeViewButton.SetPos(XMFLOAT2(fourViewsButton.GetPos().x + 100, guiScalingCombo.GetPos().y));
+	maximizeViewButton.SetEnabled(QuadViewsEnabled());
+	maximizeViewButton.SetText(maximizedView < 0 ? "Max view" : "Restore");
+	maximizeViewButton.Update(*this, 0);
 }
 
 void EditorComponent::SetCurrentScene(int index)
 {
+	for (auto& tab : scenes)
+	{
+		tab->csg.dragging = false;
+		tab->csg.validDrag = false;
+	}
 	current_scene = index;
 	this->renderPath->scene = &scenes[current_scene].get()->scene;
 	this->renderPath->camera = &scenes[current_scene].get()->camera;
@@ -6911,7 +7096,7 @@ void EditorComponent::FocusCameraOnSelected()
 {
 	Scene& scene = GetCurrentScene();
 	EditorScene& editorscene = GetCurrentEditorScene();
-	CameraComponent& camera = editorscene.camera;
+	CameraComponent& camera = GetInteractionCamera();
 
 	AABB aabb;
 	XMVECTOR centerV = XMVectorSet(0, 0, 0, 0);
@@ -6954,6 +7139,28 @@ void EditorComponent::FocusCameraOnSelected()
 			aabb = AABB::Merge(aabb, scene.aabb_probes[scene.probes.GetIndex(x.entity)]);
 		}
 	}
+	if (csgWnd.Editing())
+	{
+		auto* source = scene.csgs.GetComponent(editorscene.csg.root);
+		if (source)
+		{
+			for (const auto& brush : source->brushes)
+				if (brush.id == editorscene.csg.brush)
+					for (auto p : brush.vertices)
+					{
+						XMFLOAT3 point = {float(p.x),float(p.y),float(p.z)};
+						if (auto* root = scene.transforms.GetComponent(editorscene.csg.root))
+							XMStoreFloat3(&point,XMVector3TransformCoord(XMLoadFloat3(&point),root->GetWorldMatrix()));
+						aabb.AddPoint(point);
+						count += 1;
+					}
+			if (count > 0)
+			{
+				auto center = aabb.getCenter();
+				centerV = XMLoadFloat3(&center) * count;
+			}
+		}
+	}
 	if (count > 0)
 	{
 		centerV /= count;
@@ -6967,6 +7174,15 @@ void EditorComponent::FocusCameraOnSelected()
 		focus_offset = aabb.getRadius() * 2;
 		XMFLOAT3 aabb_center = aabb.getCenter();
 		centerV = XMLoadFloat3(&aabb_center);
+	}
+	if (QuadViewsEnabled() && activeView != 0)
+	{
+		auto& view = editorscene.orthographic[activeView - 1];
+		XMStoreFloat3(&view.Center, centerV);
+		const auto& viewport = viewportLayout.Panes[activeView];
+		view.Size = std::max(1.0f, focus_offset * 2 * std::max(1.0f, viewport.height / viewport.width));
+		view.Update(viewport.width, viewport.height);
+		return;
 	}
 
 	XMVECTOR target_forward = XMVector3Normalize(camera.GetAt());
@@ -6990,6 +7206,8 @@ void EditorComponent::FocusCameraOnSelected()
 XMFLOAT3 EditorComponent::GetPositionInFrontOfCamera() const
 {
 	const EditorScene& editorscene = GetCurrentEditorScene();
+	if (QuadViewsEnabled() && activeView != 0)
+		return editorscene.orthographic[activeView - 1].Center;
 	const CameraComponent& camera = editorscene.camera;
 	XMFLOAT3 in_front_of_camera;
 	XMStoreFloat3(&in_front_of_camera, XMVectorAdd(camera.GetEye(), camera.GetAt() * 4));

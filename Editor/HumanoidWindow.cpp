@@ -68,7 +68,7 @@ void HumanoidWindow::Create(EditorComponent* _editor)
 		{
 			humanoid->ragdoll = {}; // immediately delete ragdoll if disabled
 		}
-		ragdollCheckBox.SetEnabled(!args.bValue);
+		ragdollCheckBox.SetEnabled(!args.bValue && wi::physics::GetUnsupportedReason(wi::physics::Feature::Ragdolls) == nullptr);
 	}));
 	AddWidget(&ragdollDisabledCheckBox);
 
@@ -230,6 +230,16 @@ void HumanoidWindow::Create(EditorComponent* _editor)
 		}
 	});
 	AddWidget(&activateAllRagdollsButton);
+	if (const char* reason = wi::physics::GetUnsupportedReason(wi::physics::Feature::Ragdolls))
+	{
+		wi::gui::Widget* controls[] = { &ragdollDisabledCheckBox, &ragdollCheckBox,
+			&ragdoll2DCheckBox, &ragdollFatnessSlider, &ragdollHeadSizeSlider, &activateAllRagdollsButton };
+		for (auto* control : controls)
+		{
+			control->SetEnabled(false);
+			control->SetTooltip(reason);
+		}
+	}
 
 
 
@@ -353,7 +363,7 @@ void HumanoidWindow::SetEntity(Entity entity)
 			lookatCheckBox.SetCheck(humanoid->IsLookAtEnabled());
 			ragdollDisabledCheckBox.SetCheck(humanoid->IsRagdollDisabled());
 			ragdollCheckBox.SetCheck(humanoid->IsRagdollPhysicsEnabled());
-			ragdollCheckBox.SetEnabled(!humanoid->IsRagdollDisabled());
+			ragdollCheckBox.SetEnabled(!humanoid->IsRagdollDisabled() && wi::physics::GetUnsupportedReason(wi::physics::Feature::Ragdolls) == nullptr);
 			ragdoll2DCheckBox.SetCheck(humanoid->IsRagdoll2D());
 			capsuleShadowCheckBox.SetCheck(humanoid->IsCapsuleShadowDisabled());
 			headRotMaxXSlider.SetValue(wi::math::RadiansToDegrees(humanoid->head_rotation_max.x));

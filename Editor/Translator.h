@@ -16,7 +16,7 @@ private:
 	wi::vector<wi::ecs::Entity> selectedWithHierarchy; // all the selected entities and their descendants
 public:
 
-	void Update(const wi::scene::CameraComponent& camera, const XMFLOAT4& currentMouse, const wi::Canvas& canvas);
+	void Update(const wi::scene::CameraComponent& camera, const XMFLOAT4& currentMouse, const wi::Canvas& canvas, bool inputEnabled = true);
 	void Draw(const wi::scene::CameraComponent& camera, const XMFLOAT4& currentMouse, wi::graphics::CommandList cmd) const;
 
 	// Attach selection to translator temporarily
@@ -32,7 +32,9 @@ public:
 
 	float scale_snap = 1;
 	float rotate_snap = XM_PIDIV4;
-	float translate_snap = 1;
+	float translate_snap = 1; // global grid size, shared by object transforms, CSG editing and the ortho grid
+	bool grid_snap = true; // translations snap to absolute grid positions; holding Ctrl inverts this while dragging
+	bool IsGridSnapping() const;
 	float tool_opacity = 1;
 	float tool_darken_negative_axes = 1;
 	float tool_scale = 1.0f;
@@ -83,9 +85,9 @@ public:
 	bool IsDragEnded() const { return dragEnded; };
 
 	bool IsInteracting() const { return state != TRANSLATOR_IDLE; }
+	bool IsDragging() const { return dragging; }
 
 	wi::scene::TransformComponent transform_start;
 	wi::vector<XMFLOAT4X4> matrices_start;
 	wi::vector<XMFLOAT4X4> matrices_current;
 };
-
