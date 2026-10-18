@@ -119,6 +119,7 @@ bool debugSprings = false;
 bool gridHelper = false;
 XMFLOAT4 gridHelperColor = XMFLOAT4(1, 1, 1, 0.75f);
 bool gridHelper2D = false;
+float gridHelperSize = 1;
 bool advancedLightCulling = true;
 bool variableRateShadingClassification = false;
 bool variableRateShadingClassificationDebug = false;
@@ -8345,8 +8346,113 @@ void DrawDebugWorld(
 		};
 
 		const float h = 0.01f; // avoid z-fight with zero plane
-		const int gridRes3D = 20;
-		uint32_t linecount = (gridRes3D + 1) * 2;
+		uint32_t linecount = 0;
+
+		// The 3D grid extends to the far plane: square rings around the camera, each doubling the line spacing
+		// of the ring inside it so lines stay at least minPixels apart. A line fades out as its spacing on screen
+		// approaches minPixels, which hides the ring borders, and everything fades out towards the far plane.
+		wi::vector<Line> grid3D;
+		if (!gridHelper2D)
+		{
+			const float base = gridHelperSize;
+			const float minPixels = 12, fullPixels = 40;
+			const bool ortho = camera.IsOrtho();
+			const float viewHeight = std::max(camera.height, 1.0f);
+			const float focal = ortho ? viewHeight / std::max(camera.ortho_vertical_size, 1e-6f) : viewHeight * 0.5f / std::tan(camera.fov * 0.5f);
+			const float eye[2] = { camera.Eye.x, camera.Eye.z };
+			const float height = std::max(std::abs(camera.Eye.y - h), 1e-3f);
+			const float farDistance = ortho ? std::max(camera.ortho_vertical_size, 1.0f) * std::max(camera.width / viewHeight, 1.0f) * 4 : camera.zFarP * 0.9f;
+			const float fadeStart = farDistance * 0.5f;
+			const float maxRadius = ortho ? farDistance : std::sqrt(std::max(farDistance * farDistance - height * height, 0.0f));
+			const size_t maxLines = 100000;
+
+			// Alpha at world point (x, z) on a line of constant x (axis 0) or constant z (axis 1).
+			auto alpha = [&](int axis, float x, float z, float classSpacing, bool isAxis, bool major) {
+				const float dx = x - eye[0], dz = z - eye[1];
+				const float d = std::sqrt(dx * dx + dz * dz + height * height);
+				// Neighbouring lines are offset along x (axis 0) or z (axis 1). On screen only the part of that offset
+				// normal to the plane through the view ray and the line counts, so lines seen at grazing angles bunch up
+				// and fade sooner.
+				const XMFLOAT3 ray = ortho ? camera.At : XMFLOAT3(dx / d, -height / d, dz / d);
+				const float side = axis == 0 ? ray.x : ray.z;
+				const float across = std::abs(ray.y) / std::max(std::sqrt(ray.y * ray.y + side * side), 1e-6f);
+				const float pixels = (ortho ? classSpacing * focal : classSpacing * focal / d) * across;
+				const float lod = wi::math::saturate((pixels - minPixels) / (fullPixels - minPixels));
+				const float fade = 1 - wi::math::saturate((d - fadeStart) / (farDistance - fadeStart));
+				return gridHelperColor.w * (isAxis ? 1 : lod) * fade * (isAxis || major ? 1 : 0.5f);
+			};
+			// Lines of constant a (0 = x, 1 = z) from b0 to b1 along the other axis.
+			auto segment = [&](int axis, float c, float b0, float b1, float classSpacing, bool isAxis, bool major) {
+				if (b1 - b0 <= 0)
+					return;
+				Line line = {};
+				const float a0 = alpha(axis, axis == 0 ? c : b0, axis == 0 ? b0 : c, classSpacing, isAxis, major);
+				const float a1 = alpha(axis, axis == 0 ? c : b1, axis == 0 ? b1 : c, classSpacing, isAxis, major);
+				if (a0 <= 0 && a1 <= 0)
+					return;
+				line.color0 = isAxis ? (axis == 0 ? blueOrGreen : red) : gridHelperColor;
+				line.color1 = line.color0;
+				line.color0.w = a0;
+				line.color1.w = a1;
+				line.position0 = axis == 0 ? XMFLOAT4(c, h, b0, 1) : XMFLOAT4(b0, h, c, 1);
+				line.position1 = axis == 0 ? XMFLOAT4(c, h, b1, 1) : XMFLOAT4(b1, h, c, 1);
+				grid3D.push_back(line);
+			};
+
+			float inner = 0;
+			for (int level = 0; level < 48 && inner < maxRadius && grid3D.size() < maxLines; ++level)
+			{
+				const float spacing = std::ldexp(base, level);
+				float outer = maxRadius;
+				if (ortho)
+				{
+					if (spacing * focal < minPixels)
+						continue;
+				}
+				else
+				{
+					const float reach = spacing * focal / minPixels; // eye distance where this spacing reaches minPixels
+					if (reach <= height)
+						continue;
+					outer = std::min(outer, std::sqrt(reach * reach - height * height));
+				}
+				if (outer <= inner)
+					continue;
+				for (int axis = 0; axis < 2; ++axis)
+				{
+					const float ea = eye[axis], eb = eye[1 - axis];
+					const int64_t first = (int64_t)std::ceil((ea - outer) / spacing);
+					const int64_t last = (int64_t)std::floor((ea + outer) / spacing);
+					for (int64_t n = first; n <= last; ++n)
+					{
+						const float c = float(n * spacing);
+						const bool isAxis = n == 0;
+						int shift = 0;
+						while (!isAxis && shift < 62 && ((n >> shift) & 1) == 0)
+							shift++;
+						const float classSpacing = std::ldexp(spacing, shift);
+						const bool major = classSpacing >= base * 8;
+						if (std::abs(c - ea) < inner)
+						{
+							segment(axis, c, eb - outer, eb - inner, classSpacing, isAxis, major);
+							segment(axis, c, eb + inner, eb + outer, classSpacing, isAxis, major);
+						}
+						else
+						{
+							// Split at the ring borders and at the point nearest the camera so per-vertex fading follows distance.
+							segment(axis, c, eb - outer, eb - inner, classSpacing, isAxis, major);
+							segment(axis, c, eb - inner, eb, classSpacing, isAxis, major);
+							segment(axis, c, eb, eb + inner, classSpacing, isAxis, major);
+							segment(axis, c, eb + inner, eb + outer, classSpacing, isAxis, major);
+						}
+					}
+				}
+				inner = outer;
+				if (ortho)
+					break;
+			}
+			linecount = uint32_t(grid3D.size());
+		}
 
 		XMMATRIX viewProj = camera.GetViewProjection();
 		if (gridHelper2D)
@@ -8388,90 +8494,68 @@ void DrawDebugWorld(
 			}
 		}
 
-		auto mem = device->AllocateGPU(sizeof(Line) * linecount, cmd);
-		Line* lines = (Line*)mem.data;
-		Line line = {};
-
-		uint32_t count = 0;
-		if (gridHelper2D)
+		if (linecount > 0)
 		{
-			for (float i = std::floor(minX / gridStep) * gridStep; i <= maxX; i += gridStep)
+			auto mem = device->AllocateGPU(sizeof(Line) * linecount, cmd);
+			Line* lines = (Line*)mem.data;
+			Line line = {};
+
+			uint32_t count = 0;
+			if (gridHelper2D)
 			{
-				const bool isMajor = std::abs(std::fmod(i, majorStep)) < 0.001f;
-				line.position0 = XMFLOAT4(i, h, minZ, 1.0f);
-				line.position1 = XMFLOAT4(i, h, maxZ, 1.0f);
-				line.color0 = i == 0 ? blueOrGreen : gridHelperColor;
-				line.color1 = line.color0;
-				if (!isMajor)
+				for (float i = std::floor(minX / gridStep) * gridStep; i <= maxX; i += gridStep)
 				{
-					line.color0.w = smalleralpha;
-					line.color1.w = smalleralpha;
+					const bool isMajor = std::abs(std::fmod(i, majorStep)) < 0.001f;
+					line.position0 = XMFLOAT4(i, h, minZ, 1.0f);
+					line.position1 = XMFLOAT4(i, h, maxZ, 1.0f);
+					line.color0 = i == 0 ? blueOrGreen : gridHelperColor;
+					line.color1 = line.color0;
+					if (!isMajor)
+					{
+						line.color0.w = smalleralpha;
+						line.color1.w = smalleralpha;
+					}
+					std::memcpy(&lines[count++], &line, sizeof(line)); // writecombine
 				}
-				std::memcpy(&lines[count++], &line, sizeof(line)); // writecombine
-			}
 
-			for (float i = std::floor(minZ / gridStep) * gridStep; i <= maxZ; i += gridStep)
-			{
-				const bool isMajor = std::abs(std::fmod(i, majorStep)) < 0.001f;
-				line.position0 = XMFLOAT4(minX, h, i, 1.0f);
-				line.position1 = XMFLOAT4(maxX, h, i, 1.0f);
-				line.color0 = i == 0 ? red : gridHelperColor;
-				line.color1 = line.color0;
-				if (!isMajor)
+				for (float i = std::floor(minZ / gridStep) * gridStep; i <= maxZ; i += gridStep)
 				{
-					line.color0.w = smalleralpha;
-					line.color1.w = smalleralpha;
+					const bool isMajor = std::abs(std::fmod(i, majorStep)) < 0.001f;
+					line.position0 = XMFLOAT4(minX, h, i, 1.0f);
+					line.position1 = XMFLOAT4(maxX, h, i, 1.0f);
+					line.color0 = i == 0 ? red : gridHelperColor;
+					line.color1 = line.color0;
+					if (!isMajor)
+					{
+						line.color0.w = smalleralpha;
+						line.color1.w = smalleralpha;
+					}
+					std::memcpy(&lines[count++], &line, sizeof(line)); // writecombine
 				}
-				std::memcpy(&lines[count++], &line, sizeof(line)); // writecombine
 			}
-		}
-		else
-		{
-			for (int i = 0; i <= gridRes3D; ++i)
+			else
 			{
-				line.position0 = XMFLOAT4(i - gridRes3D * 0.5f, h, -gridRes3D * 0.5f, 1);
-				line.color0 = (i == gridRes3D / 2 ? blueOrGreen : gridHelperColor);
-				line.position1 = XMFLOAT4(i - gridRes3D * 0.5f, h, +gridRes3D * 0.5f, 1);
-				line.color1 = line.color0;
-				//if (((i % 10) != 0))
-				//{
-				//	line.color0.w = smalleralpha;
-				//	line.color1.w = smalleralpha;
-				//}
-				std::memcpy(&lines[count++], &line, sizeof(line)); // writecombine
+				std::memcpy(lines, grid3D.data(), sizeof(Line) * grid3D.size()); // writecombine
 			}
-			for (int i = 0; i <= gridRes3D; ++i)
-			{
-				line.position0 = XMFLOAT4(-gridRes3D * 0.5f, h, i - gridRes3D * 0.5f, 1);
-				line.color0 = (i == gridRes3D / 2 ? red : gridHelperColor);
-				line.position1 = XMFLOAT4(+gridRes3D * 0.5f, h, i - gridRes3D * 0.5f, 1);
-				line.color1 = line.color0;
-				//if (((i % 10) != 0))
-				//{
-				//	line.color0.w = smalleralpha;
-				//	line.color1.w = smalleralpha;
-				//}
-				std::memcpy(&lines[count++], &line, sizeof(line)); // writecombine
-			}
+
+			MiscCB sb;
+			XMStoreFloat4x4(&sb.g_xTransform, viewProj);
+			sb.g_xColor = float4(1, 1, 1, 1);
+
+			device->BindDynamicConstantBuffer(sb, CB_GETBINDSLOT(MiscCB), cmd);
+
+			const GPUBuffer* vbs[] = {
+				&mem.buffer,
+			};
+			const uint32_t strides[] = {
+				sizeof(XMFLOAT4) + sizeof(XMFLOAT4),
+			};
+			const uint64_t offsets[] = {
+				mem.offset
+			};
+			device->BindVertexBuffers(vbs, 0, arraysize(vbs), strides, offsets, cmd);
+			device->Draw((gridHelper2D ? count : linecount) * 2, 0, cmd);
 		}
-
-		MiscCB sb;
-		XMStoreFloat4x4(&sb.g_xTransform, viewProj);
-		sb.g_xColor = float4(1, 1, 1, 1);
-
-		device->BindDynamicConstantBuffer(sb, CB_GETBINDSLOT(MiscCB), cmd);
-
-		const GPUBuffer* vbs[] = {
-			&mem.buffer,
-		};
-		const uint32_t strides[] = {
-			sizeof(XMFLOAT4) + sizeof(XMFLOAT4),
-		};
-		const uint64_t offsets[] = {
-			mem.offset
-		};
-		device->BindVertexBuffers(vbs, 0, arraysize(vbs), strides, offsets, cmd);
-		device->Draw(count * 2, 0, cmd);
 
 		device->EventEnd(cmd);
 	}
@@ -19419,6 +19503,15 @@ void SetGridHelper2D(bool value)
 bool IsGridHelper2D()
 {
 	return gridHelper2D;
+}
+void SetGridHelperSize(float value)
+{
+	if (value > 0 && std::isfinite(value))
+		gridHelperSize = value;
+}
+float GetGridHelperSize()
+{
+	return gridHelperSize;
 }
 bool GetToDrawVoxelHelper() { return VXGI_DEBUG; }
 void SetToDrawVoxelHelper(bool value, int clipmap_level) { VXGI_DEBUG = value; VXGI_DEBUG_CLIPMAP = clipmap_level; }

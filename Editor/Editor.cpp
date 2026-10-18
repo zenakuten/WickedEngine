@@ -1091,7 +1091,7 @@ void EditorComponent::Load()
 
 		gridSizeCombo.Create("");
 		gridSizeCombo.SetShadowRadius(2);
-		gridSizeCombo.SetTooltip("Grid size in world units, used by snapping and the orthographic grid.\nHotkeys: [ smaller, ] larger");
+		gridSizeCombo.SetTooltip("Grid size in world units, used by snapping and the grids in every view.\nHotkeys: [ smaller, ] larger");
 		gridSizeCombo.SetLocalizationEnabled(wi::gui::LocalizationEnabled::Tooltip);
 		for (int i = 0; i < 11; ++i)
 		{
@@ -1109,6 +1109,7 @@ void EditorComponent::Load()
 		int index = std::clamp(int(std::round(std::log2(std::max(size, 1.0f / 16)))) + 4, 0, 10);
 		gridSizeCombo.SetSelectedWithoutCallback(index);
 		translator.translate_snap = std::ldexp(1.0f, index - 4);
+		wi::renderer::SetGridHelperSize(translator.translate_snap);
 		GetGUI().AddWidget(&gridSizeCombo);
 	}
 
@@ -6408,6 +6409,7 @@ void EditorComponent::SetGridSize(int index)
 	index = std::clamp(index, 0, int(gridSizeCombo.GetItemCount()) - 1);
 	gridSizeCombo.SetSelectedWithoutCallback(index);
 	translator.translate_snap = std::ldexp(1.0f, index - 4);
+	wi::renderer::SetGridHelperSize(translator.translate_snap);
 	main->config.GetSection("options").Set("grid_size", translator.translate_snap);
 	main->config.Commit();
 }
@@ -6642,9 +6644,6 @@ void EditorComponent::UpdateDynamicWidgets()
 	gridSnapButton.SetSize(XMFLOAT2(hei, hei));
 	gridSnapButton.SetPos(XMFLOAT2(ofs, y));
 	gridSnapButton.Update(*this, 0);
-	gridSizeCombo.SetSize(XMFLOAT2(hei * 2, hei));
-	gridSizeCombo.SetPos(XMFLOAT2(ofs - gridSizeCombo.GetSize().x - hei - padding, y));
-	gridSizeCombo.Update(*this, 0);
 	y += gridSnapButton.GetSize().y + padding;
 
 	physicsButton.SetSize(XMFLOAT2(hei, hei));
@@ -6877,6 +6876,9 @@ void EditorComponent::UpdateDynamicWidgets()
 	maximizeViewButton.SetEnabled(QuadViewsEnabled());
 	maximizeViewButton.SetText(maximizedView < 0 ? "Max view" : "Restore");
 	maximizeViewButton.Update(*this, 0);
+	gridSizeCombo.SetSize(XMFLOAT2(60, 18));
+	gridSizeCombo.SetPos(XMFLOAT2(maximizeViewButton.GetPos().x + maximizeViewButton.GetSize().x + 10, guiScalingCombo.GetPos().y));
+	gridSizeCombo.Update(*this, 0);
 }
 
 void EditorComponent::SetCurrentScene(int index)

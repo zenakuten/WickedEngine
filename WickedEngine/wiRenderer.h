@@ -1227,6 +1227,9 @@ namespace wi::renderer
 	void SetGridHelperColor(const XMFLOAT4& value);
 	XMFLOAT4 GetGridHelperColor();
 	void SetGridHelper2D(bool value);
+	// Spacing of the 3D grid helper lines in world units
+	void SetGridHelperSize(float value);
+	float GetGridHelperSize();
 	bool IsGridHelper2D();
 	bool GetToDrawVoxelHelper();
 	void SetToDrawVoxelHelper(bool value, int clipmap_level);
