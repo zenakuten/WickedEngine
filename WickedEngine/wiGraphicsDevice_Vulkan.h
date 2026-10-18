@@ -174,6 +174,7 @@ namespace wi::graphics
 		VkPhysicalDeviceRayQueryFeaturesKHR raytracing_query_features = {};
 		VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate_features = {};
 		VkPhysicalDeviceConditionalRenderingFeaturesEXT conditional_rendering_features = {};
+		VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR compute_shader_derivatives_features = {};
 		VkPhysicalDeviceDepthClipEnableFeaturesEXT depth_clip_enable_features = {};
 		VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod_features = {};
 		VkPhysicalDeviceMeshShaderFeaturesEXT mesh_shader_features = {};

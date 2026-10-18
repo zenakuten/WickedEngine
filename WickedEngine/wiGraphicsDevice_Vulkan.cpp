@@ -2398,6 +2398,7 @@ using namespace vulkan_internal;
 				fragment_shading_rate_features = {};
 				mesh_shader_features = {};
 				conditional_rendering_features = {};
+				compute_shader_derivatives_features = {};
 				depth_clip_enable_features = {};
 
 				properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -2509,6 +2510,15 @@ using namespace vulkan_internal;
 					conditional_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT;
 					*features_chain = &conditional_rendering_features;
 					features_chain = &conditional_rendering_features.pNext;
+				}
+
+				// The shader compiler emits SPV_KHR_compute_shader_derivatives for derivatives in compute shaders.
+				if (checkExtensionSupport(VK_KHR_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME, available_deviceExtensions))
+				{
+					enabled_deviceExtensions.push_back(VK_KHR_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME);
+					compute_shader_derivatives_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_KHR;
+					*features_chain = &compute_shader_derivatives_features;
+					features_chain = &compute_shader_derivatives_features.pNext;
 				}
 
 				if (checkExtensionSupport(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME, available_deviceExtensions) &&
@@ -7540,20 +7550,24 @@ using namespace vulkan_internal;
 				break;
 			}
 
-			if (image.layout_before != image.layout)
+			// Vulkan resolves are written as color attachments inside the pass (see resolveImageLayout above),
+			//	unlike the copy destination state that other backends use for resolve targets.
+			const ResourceState pass_layout = image.type == RenderPassImage::Type::RESOLVE ? ResourceState::RENDERTARGET : image.layout;
+
+			if (image.layout_before != pass_layout)
 			{
 				VkImageMemoryBarrier2& barrier = commandlist.renderpass_barriers_begin.emplace_back();
 				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 				barrier.image = internal_state->resource;
 				barrier.oldLayout = _ConvertImageLayout(image.layout_before);
-				barrier.newLayout = _ConvertImageLayout(image.layout);
+				barrier.newLayout = _ConvertImageLayout(pass_layout);
 
 				assert(barrier.newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 
 				barrier.srcStageMask = _ConvertPipelineStage(image.layout_before);
-				barrier.dstStageMask = _ConvertPipelineStage(image.layout);
+				barrier.dstStageMask = _ConvertPipelineStage(pass_layout);
 				barrier.srcAccessMask = _ParseResourceState(image.layout_before);
-				barrier.dstAccessMask = _ParseResourceState(image.layout);
+				barrier.dstAccessMask = _ParseResourceState(pass_layout);
 
 				if (IsFormatDepthSupport(desc.format))
 				{
@@ -7575,19 +7589,19 @@ using namespace vulkan_internal;
 				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			}
 
-			if (image.layout != image.layout_after)
+			if (pass_layout != image.layout_after)
 			{
 				VkImageMemoryBarrier2& barrier = commandlist.renderpass_barriers_end.emplace_back();
 				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 				barrier.image = internal_state->resource;
-				barrier.oldLayout = _ConvertImageLayout(image.layout);
+				barrier.oldLayout = _ConvertImageLayout(pass_layout);
 				barrier.newLayout = _ConvertImageLayout(image.layout_after);
 
 				assert(barrier.newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 
-				barrier.srcStageMask = _ConvertPipelineStage(image.layout);
+				barrier.srcStageMask = _ConvertPipelineStage(pass_layout);
 				barrier.dstStageMask = _ConvertPipelineStage(image.layout_after);
-				barrier.srcAccessMask = _ParseResourceState(image.layout);
+				barrier.srcAccessMask = _ParseResourceState(pass_layout);
 				barrier.dstAccessMask = _ParseResourceState(image.layout_after);
 
 				if (IsFormatDepthSupport(desc.format))
